@@ -1,30 +1,61 @@
 import os
 import requests
 import json
+import jwt # Python JWT library
 
 BASE_URL = ""
-USERS = {
-    "user": {"username": "user", "password": "user"},
-    "admin": {"username": "admin", "password": "admin"}
-}
 
-current_user_role = None
-current_token = None
+current_user_info = None # Stores decoded JWT payload
+current_token = None # Stores the raw ID Token
 
 def login(username, password):
-    global current_token, current_user_role
+    global current_token, current_user_info
     try:
         r = requests.post(f"{BASE_URL}/auth/login", json={"username": username, "password": password})
         r.raise_for_status()
         data = r.json()
-        current_token = data['token']
-        current_user_role = username
-        print(f"Logged in as {username}.")
+        current_token = data['idToken']
+        
+        # Decode the ID token to get user info and role
+        # Note: This is client-side decoding for display/routing. Server-side verification is authoritative.
+        decoded_token = jwt.decode(current_token, options={"verify_signature": False}) 
+        current_user_info = decoded_token
+        
+        print(f"Logged in as {current_user_info.get('cognito:username', username)}.")
         return True
     except requests.exceptions.RequestException as e:
         print(f"Login failed: {e}")
+        if e.response is not None:
+            print(f"HTTP Status Code: {e.response.status_code}")
+            print(f"Response Body: {e.response.text}")
         current_token = None
-        current_user_role = None
+        current_user_info = None
+        return False
+
+def signup(username, email, password):
+    try:
+        r = requests.post(f"{BASE_URL}/auth/signup", json={"username": username, "email": email, "password": password})
+        r.raise_for_status()
+        print(f"Sign up successful for {username}. Please check your email to confirm your account.")
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Sign up failed: {e}")
+        if e.response is not None:
+            print(f"HTTP Status Code: {e.response.status_code}")
+            print(f"Response Body: {e.response.text}")
+        return False
+
+def confirm_signup(username, confirmation_code):
+    try:
+        r = requests.post(f"{BASE_URL}/auth/confirm", json={"username": username, "confirmationCode": confirmation_code})
+        r.raise_for_status()
+        print(f"Account for {username} confirmed successfully.")
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Confirmation failed: {e}")
+        if e.response is not None:
+            print(f"HTTP Status Code: {e.response.status_code}")
+            print(f"Response Body: {e.response.text}")
         return False
 
 def generate_fractal():
@@ -72,6 +103,9 @@ def generate_fractal():
             print(f"\nFractal generated successfully! Unexpected response: {data}")
     except requests.exceptions.RequestException as e:
         print(f"\nFractal generation failed: {e}")
+        if e.response is not None:
+            print(f"HTTP Status Code: {e.response.status_code}")
+            print(f"Response Body: {e.response.text}")
 
 def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sortBy=None, sortOrder=None, prompt_for_filters=True):
     if not current_token:
@@ -80,18 +114,20 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
 
     endpoint = ""
     title = ""
+    
+    user_role = current_user_info.get('custom:role', 'user') # Default to 'user' if custom:role is not present
 
     if view_type == "my_gallery":
         endpoint = "/gallery"
         title = "My Gallery"
     elif view_type == "all_history":
-        if current_user_role != "admin":
+        if user_role != "admin":
             print("Admin privileges required to view all history.")
             return
         endpoint = "/admin/history"
         title = "All History"
     elif view_type == "all_gallery":
-        if current_user_role != "admin":
+        if user_role != "admin":
             print("Admin privileges required to view all gallery.")
             return
         endpoint = "/admin/gallery"
@@ -119,8 +155,9 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
         if width: filters["width"] = int(width)
         if height: filters["height"] = int(height)
 
-    for k, v in filters.items():
-        query_params[k] = v
+    if filters:
+        for k, v in filters.items():
+            query_params[k] = v
 
     if sortBy is None: sortBy = input("Sort By (e.g., added_at, hash, width - leave blank for default): ")
     if sortOrder is None: sortOrder = input("Sort Order (ASC/DESC - leave blank for default): ")
@@ -194,9 +231,12 @@ def delete_gallery_entry():
         print(f"Gallery entry {gallery_id} deleted successfully.")
     except requests.exceptions.RequestException as e:
         print(f"Failed to delete gallery entry {gallery_id}: {e}")
+        if e.response is not None:
+            print(f"HTTP Status Code: {e.response.status_code}")
+            print(f"Response Body: {e.response.text}")
 
 def main_menu():
-    global BASE_URL
+    global BASE_URL, current_user_info, current_token
     ip_address = input("Enter the server IP address (leave empty for localhost): ")
     if not ip_address:
         ip_address = "localhost"
@@ -206,50 +246,59 @@ def main_menu():
     while True:
         clear_terminal()
         print("\n--- Main Menu ---")
-        if current_user_role:
-            print(f"Logged in as: {current_user_role}")
+        if current_user_info:
+            user_role = current_user_info.get('custom:role', 'user')
+            username = current_user_info.get('cognito:username', 'Unknown')
+            print(f"Logged in as: {username} (Role: {user_role})")
         else:
             print("Not logged in.")
 
-        print("1. Select User (Login)")
-        print("2. Generate Fractal")
-        print("3. View My Gallery")
-        if current_user_role == "admin":
-            print("4. View All History (Admin)")
-            print("5. View All Gallery (Admin)")
-        print("6. Delete Gallery Entry")
-        print("7. Exit")
+        print("1. Sign Up")
+        print("2. Confirm Sign Up")
+        print("3. Login")
+        print("4. Generate Fractal")
+        print("5. View My Gallery")
+        
+        if current_user_info and current_user_info.get('custom:role', 'user') == "admin":
+            print("6. View All History (Admin)")
+            print("7. View All Gallery (Admin)")
+        print("8. Delete Gallery Entry")
+        print("9. Exit")
 
         print()
         choice = input("Enter your choice: ")
         
         if choice == "1":
             clear_terminal()
-            print("\nSelect user:")
-            print("  1. user")
-            print("  2. user2")
-            print("  3. admin")
-            user_choice_num = input("\nEnter choice (1, 2 or 3): ")
-            selected_user = None
-            if user_choice_num == "1":
-                selected_user = "user"
-            elif user_choice_num == "2":
-                selected_user = "user2"
-            elif user_choice_num == "3":
-                selected_user = "admin"
-            else:
-                print("Invalid choice.")
-
-            if selected_user:
-                login(USERS[selected_user]["username"], USERS[selected_user]["password"])
+            print("\n--- Sign Up ---")
+            username = input("Enter username: ")
+            email = input("Enter email: ")
+            password = input("Enter password: ")
+            signup(username, email, password)
             input("\nPress Enter to continue...")
             
         elif choice == "2":
             clear_terminal()
+            print("\n--- Confirm Sign Up ---")
+            username = input("Enter username: ")
+            confirmation_code = input("Enter confirmation code from email: ")
+            confirm_signup(username, confirmation_code)
+            input("\nPress Enter to continue...")
+
+        elif choice == "3":
+            clear_terminal()
+            print("\n--- Login ---")
+            username = input("Enter username: ")
+            password = input("Enter password: ")
+            login(username, password)
+            input("\nPress Enter to continue...")
+            
+        elif choice == "4":
+            clear_terminal()
             generate_fractal()
             input("\nPress Enter to continue...")
             
-        elif choice == "3":
+        elif choice == "5":
             current_limit = None
             current_offset = 0
             print("\n--- View My Gallery ---")
@@ -305,7 +354,7 @@ def main_menu():
                     break
             input("\nPress Enter to continue...")
         
-        elif choice == "4" and current_user_role == "admin":
+        elif choice == "6" and current_user_info and current_user_info.get('custom:role', 'user') == "admin":
             current_limit = None
             current_offset = 0
             print("\n--- View All History (Admin) ---")
@@ -362,7 +411,7 @@ def main_menu():
                 else:
                     break
             input("\nPress Enter to continue...")
-        elif choice == "5" and current_user_role == "admin":
+        elif choice == "7" and current_user_info and current_user_info.get('custom:role', 'user') == "admin":
             current_limit = None
             current_offset = 0
             print("\n--- View All Gallery (Admin) ---")
@@ -418,12 +467,12 @@ def main_menu():
                 else:
                     break
             input("\nPress Enter to continue...")
-        elif choice == "6":
+        elif choice == "8":
             clear_terminal()
             delete_gallery_entry()
             input("\nPress Enter to continue...")
             
-        elif choice == "7":
+        elif choice == "9":
             clear_terminal()
             print("\nExiting CLI. Goodbye!")
             break

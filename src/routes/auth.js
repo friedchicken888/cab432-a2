@@ -1,39 +1,33 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const users = require('../users');
+const { CognitoIdentityProviderClient, SignUpCommand, ConfirmSignUpCommand, InitiateAuthCommand } = require('@aws-sdk/client-cognito-identity-provider');
+const { CognitoJwtVerifier } = require("aws-jwt-verify");
+const crypto = require('crypto');
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const POOL_REGION = process.env.AWS_COGNITO_POOL_REGION;
+const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
+const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
+const CLIENT_SECRET = process.env.AWS_COGNITO_CLIENT_SECRET;
 
-router.post('/login', (req, res) => {
-    const { username, password } = req.body;
+const cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
 
-    if (!username || !password) {
-        return res.status(400).send('Username and password are required');
-    }
+// Helper function to calculate SecretHash
+function secretHash(clientId, clientSecret, username) {
+    const hasher = crypto.createHmac('sha256', clientSecret);
+    hasher.update(`${username}${clientId}`);
+    return hasher.digest('base64');
+}
 
-    const user = users.find(u => u.username === username);
-
-    if (!user) {
-        return res.status(401).send('Invalid username or password');
-    }
-
-    const isPasswordValid = bcrypt.compareSync(password, user.password);
-
-    if (!isPasswordValid) {
-        return res.status(401).send('Invalid username or password');
-    }
-
-    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, {
-        expiresIn: '1h'
-    });
-
-    res.json({ token });
+// Cognito ID Token Verifier
+const idVerifier = CognitoJwtVerifier.create({
+    userPoolId: USER_POOL_ID,
+    tokenUse: "id",
+    clientId: CLIENT_ID,
 });
 
-function verifyToken(req, res, next) {
+// Middleware to verify Cognito ID Token
+async function verifyToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -42,12 +36,105 @@ function verifyToken(req, res, next) {
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
+        const payload = await idVerifier.verify(token);
+        // Attach user info from Cognito ID token payload
+        req.user = {
+            id: payload.sub, // Cognito User ID
+            username: payload['cognito:username'],
+            email: payload.email,
+            role: payload['custom:role'] || 'user' // Assuming a custom:role attribute in Cognito
+        };
         next();
     } catch (err) {
+        console.error('JWT verification error:', err);
         res.status(403).send('Invalid token.');
     }
 }
+
+// Cognito Signup Route
+router.post('/signup', async (req, res) => {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+        return res.status(400).send('Username, email, and password are required.');
+    }
+
+    const params = {
+        ClientId: CLIENT_ID,
+        SecretHash: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+        Username: username,
+        Password: password,
+        UserAttributes: [
+            { Name: 'email', Value: email },
+        ],
+    };
+
+    try {
+        const command = new SignUpCommand(params);
+        await cognitoClient.send(command);
+        res.status(200).send('User registered successfully. Please check your email for a confirmation code.');
+    } catch (error) {
+        console.error('Cognito SignUp error:', error);
+        res.status(500).send(error.message);
+    }
+});
+
+// Cognito Confirm Signup Route
+router.post('/confirm', async (req, res) => {
+    const { username, confirmationCode } = req.body;
+
+    if (!username || !confirmationCode) {
+        return res.status(400).send('Username and confirmation code are required.');
+    }
+
+    const params = {
+        ClientId: CLIENT_ID,
+        SecretHash: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+        Username: username,
+        ConfirmationCode: confirmationCode,
+    };
+
+    try {
+        const command = new ConfirmSignUpCommand(params);
+        await cognitoClient.send(command);
+        res.status(200).send('User confirmed successfully.');
+    } catch (error) {
+        console.error('Cognito ConfirmSignUp error:', error);
+        res.status(500).send(error.message);
+    }
+});
+
+// Cognito Login Route
+router.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).send('Username and password are required.');
+    }
+
+    const params = {
+        AuthFlow: 'USER_PASSWORD_AUTH',
+        ClientId: CLIENT_ID,
+        AuthParameters: {
+            USERNAME: username,
+            PASSWORD: password,
+            SECRET_HASH: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+        },
+    };
+
+    try {
+        const command = new InitiateAuthCommand(params);
+        const response = await cognitoClient.send(command);
+        res.json({
+            idToken: response.AuthenticationResult.IdToken,
+            accessToken: response.AuthenticationResult.AccessToken,
+            expiresIn: response.AuthenticationResult.ExpiresIn,
+            tokenType: response.AuthenticationResult.TokenType,
+        });
+    } catch (error) {
+        console.error('Cognito InitiateAuth error:', error);
+        res.status(500).send(error.message);
+    }
+});
 
 module.exports = { router, verifyToken };

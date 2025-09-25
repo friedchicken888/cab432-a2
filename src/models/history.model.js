@@ -1,5 +1,4 @@
 const db = require('../database.js');
-const users = require('../users.js');
 
 exports.getHistoryForUser = (userId, callback) => {
     const sql = `
@@ -78,11 +77,7 @@ exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset, callback) =>
         `;
         db.all(dataSql, [...params, limit, offset], (err, rows) => {
             if (err) return callback(err);
-            const historyWithUsernames = rows.map(row => {
-                const user = users.find(u => u.id === row.user_id);
-                return { ...row, username: user ? user.username : 'Unknown' };
-            });
-            callback(null, historyWithUsernames, totalCount);
+            callback(null, rows, totalCount);
         });
     });
 };

@@ -1,5 +1,4 @@
 const db = require('../database.js');
-const users = require('../users.js');
 
 exports.addToGallery = (userId, fractalId, fractalHash, callback) => {
     const sql = "INSERT OR IGNORE INTO gallery (user_id, fractal_id, fractal_hash) VALUES (?, ?, ?)";
@@ -134,11 +133,7 @@ exports.getAllGallery = (filters, sortBy, sortOrder, limit, offset, callback) =>
         `;
         db.all(dataSql, [...params, limit, offset], (err, rows) => {
             if (err) return callback(err);
-            const galleryWithUsernames = rows.map(row => {
-                const user = users.find(u => u.id === row.user_id);
-                return { ...row, username: user ? user.username : 'Unknown' };
-            });
-            callback(null, galleryWithUsernames, totalCount);
+            callback(null, rows, totalCount);
         });
     });
 };
