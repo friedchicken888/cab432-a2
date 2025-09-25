@@ -191,10 +191,8 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
                 color_scheme = entry.get('colorScheme', 'N/A')
 
                 print(f"ID: {entry.get('id')}, Hash: {display_hash}{user_info}, Time: {entry.get(timestamp_field)}")
-                print(f"  Params: W:{width}, H:{height}, Iter:{iterations}, Power:{power}, C:{c_real}+{c_imag}i, Scale:{scale}, Offset:{offset_x},{offset_y}, Color:{color_scheme}")
-                if entry.get('url'):
-                    print(f"  URL: {entry.get('url')}\n")
-                
+                print(f"  Params: W:{width}, H:{height}, Iter:{iterations}, Power:{power}, C:{c_real}+{c_imag}i, Scale:{scale}, Offset:{offset_x},{offset_y}, Color:{color_scheme}\n")
+            
             return {'data': data, 'totalCount': total_count, 'limit': current_limit, 'offset': current_offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder}
         else:
             print(f"No {title.lower()} items found for the current query.")
@@ -229,38 +227,18 @@ def delete_gallery_entry():
             print(f"HTTP Status Code: {e.response.status_code}")
             print(f"Response Body: {e.response.text}")
 
-def main_menu():
-    global BASE_URL, current_user_info, current_token
-    ip_address = input("Enter the server IP address (leave empty for localhost): ")
-    if not ip_address:
-        ip_address = "localhost"
-    BASE_URL = f"http://{ip_address}:3000/api"
-    
-
+def auth_menu():
+    global current_user_info, current_token
     while True:
         clear_terminal()
-        print("\n--- Main Menu ---")
-        if current_user_info:
-            user_role = current_user_info.get('custom:role', 'user')
-            username = current_user_info.get('cognito:username', 'Unknown')
-            print(f"Logged in as: {username} (Role: {user_role})")
-        else:
-            print("Not logged in.")
-
+        print("\n--- Authentication Menu ---")
         print("1. Sign Up")
         print("2. Confirm Sign Up")
         print("3. Login")
-        print("4. Generate Fractal")
-        print("5. View My Gallery")
-        
-        print("6. View All History (Admin)")
-        print("7. View All Gallery (Admin)")
-        print("8. Delete Gallery Entry")
-        print("9. Exit")
+        print("4. Exit")
 
-        print()
         choice = input("Enter your choice: ")
-        
+
         if choice == "1":
             clear_terminal()
             print("\n--- Sign Up ---")
@@ -269,7 +247,6 @@ def main_menu():
             password = input("Enter password: ")
             signup(username, email, password)
             input("\nPress Enter to continue...")
-            
         elif choice == "2":
             clear_terminal()
             print("\n--- Confirm Sign Up ---")
@@ -277,21 +254,53 @@ def main_menu():
             confirmation_code = input("Enter confirmation code from email: ")
             confirm_signup(username, confirmation_code)
             input("\nPress Enter to continue...")
-
         elif choice == "3":
             clear_terminal()
             print("\n--- Login ---")
             username = input("Enter username: ")
             password = input("Enter password: ")
-            login(username, password)
-            input("\nPress Enter to continue...")
-            
+            if login(username, password):
+                user_menu()
+                current_user_info = None
+                current_token = None
+            else:
+                input("\nPress Enter to continue...")
         elif choice == "4":
+            clear_terminal()
+            print("\nExiting CLI. Goodbye!")
+            break
+        else:
+            print("\nInvalid choice. Please try again.")
+            input("Press Enter to continue...")
+
+def user_menu():
+    global current_user_info, current_token
+    while True:
+        clear_terminal()
+        print("\n--- Main Menu ---")
+        if current_user_info:
+            user_role = current_user_info.get('custom:role', 'user')
+            username = current_user_info.get('cognito:username', 'Unknown')
+            print(f"Logged in as: {username} (Role: {user_role})")
+        else:
+            print("Not logged in.") # Should not happen if user_menu is called after successful login
+
+        print("1. Generate Fractal")
+        print("2. View My Gallery")
+        print("3. View All History (Admin)")
+        print("4. View All Gallery (Admin)")
+        print("5. Delete Gallery Entry")
+        print("6. Logout")
+        print("7. Exit")
+
+        print()
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
             clear_terminal()
             generate_fractal()
             input("\nPress Enter to continue...")
-            
-        elif choice == "5":
+        elif choice == "2":
             current_limit = None
             current_offset = 0
             print("\n--- View My Gallery ---")
@@ -347,7 +356,7 @@ def main_menu():
                     break
             input("\nPress Enter to continue...")
         
-        elif choice == "6":
+        elif choice == "3":
             current_limit = None
             current_offset = 0
             print("\n--- View All History (Admin) ---")
@@ -404,7 +413,7 @@ def main_menu():
                 else:
                     break
             input("\nPress Enter to continue...")
-        elif choice == "7":
+        elif choice == "4":
             current_limit = None
             current_offset = 0
             print("\n--- View All Gallery (Admin) ---")
@@ -460,18 +469,33 @@ def main_menu():
                 else:
                     break
             input("\nPress Enter to continue...")
-        elif choice == "8":
+        elif choice == "5":
             clear_terminal()
             delete_gallery_entry()
             input("\nPress Enter to continue...")
             
-        elif choice == "9":
+        elif choice == "6": # Logout
+            current_user_info = None
+            current_token = None
+            print("\nLogged out successfully.")
+            input("Press Enter to continue...")
+            break # Exit user_menu to return to auth_menu
+        elif choice == "7": # Exit
             clear_terminal()
             print("\nExiting CLI. Goodbye!")
-            break
+            exit() # Terminate the program
         else:
             print("\nInvalid choice. Please try again.")
             input("Press Enter to continue...")
+
+def main_menu():
+    global BASE_URL
+    ip_address = input("Enter the server IP address (leave empty for localhost): ")
+    if not ip_address:
+        ip_address = "localhost"
+    BASE_URL = f"http://{ip_address}:3000/api"
+
+    auth_menu()
 
 if __name__ == "__main__":
     main_menu()
