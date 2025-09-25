@@ -1,8 +1,16 @@
 const db = require('../database.js');
 
 exports.addToGallery = (userId, fractalId, fractalHash, callback) => {
-    const sql = "INSERT INTO gallery (user_id, fractal_id, fractal_hash) VALUES ($1, $2, $3) ON CONFLICT (user_id, fractal_hash) DO NOTHING";
-    db.query(sql, [userId, fractalId, fractalHash], callback);
+    const insertSql = "INSERT INTO gallery (user_id, fractal_id, fractal_hash) VALUES ($1, $2, $3) ON CONFLICT (user_id, fractal_hash) DO NOTHING";
+    db.query(insertSql, [userId, fractalId, fractalHash], (err) => {
+        if (err) return callback(err);
+        // After attempting insert, retrieve the gallery ID for the given user and fractal hash
+        const selectSql = "SELECT id FROM gallery WHERE user_id = $1 AND fractal_hash = $2";
+        db.query(selectSql, [userId, fractalHash], (err, result) => {
+            if (err) return callback(err);
+            callback(null, result.rows[0].id); // Return the gallery ID
+        });
+    });
 };
 
 exports.getGalleryForUser = (userId, filters, sortBy, sortOrder, limit, offset, callback) => {
@@ -89,6 +97,14 @@ exports.deleteGalleryEntry = (id, userId, isAdmin, callback) => {
 exports.countGalleryByFractalHash = (fractalHash, callback) => {
     const sql = "SELECT COUNT(*) as count FROM gallery WHERE fractal_hash = $1";
     db.query(sql, [fractalHash], (err, result) => {
+        if (err) return callback(err);
+        callback(null, result.rows[0]);
+    });
+};
+
+exports.findGalleryEntryByFractalHashAndUserId = (userId, fractalHash, callback) => {
+    const sql = "SELECT id FROM gallery WHERE user_id = $1 AND fractal_hash = $2";
+    db.query(sql, [userId, fractalHash], (err, result) => {
         if (err) return callback(err);
         callback(null, result.rows[0]);
     });

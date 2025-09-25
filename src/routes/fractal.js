@@ -47,13 +47,30 @@ router.get('/fractal', verifyToken, async (req, res) => {
                     console.error("Failed to log history", err);
                 }
             });
-            Gallery.addToGallery(req.user.id, row.id, row.hash, (err) => {
+
+            Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash, (err, galleryEntry) => {
                 if (err) {
-                    console.error("Failed to add to gallery", err);
+                    console.error("Failed to find gallery entry", err);
+                    return res.status(500).send("Database error");
+                }
+
+                let galleryId;
+                if (galleryEntry) {
+                    galleryId = galleryEntry.id;
+                    const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${row.hash}.png`;
+                    return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
+                } else {
+                    Gallery.addToGallery(req.user.id, row.id, row.hash, (err, newGalleryId) => {
+                        if (err) {
+                            console.error("Failed to add to gallery", err);
+                            return res.status(500).send("Database error");
+                        }
+                        galleryId = newGalleryId;
+                        const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${row.hash}.png`;
+                        return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
+                    });
                 }
             });
-            const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${row.hash}.png`;
-            return res.json({ hash: row.hash, url: fractalUrl });
         } else {
             // Fractal does not exist, generate it
             isGenerating = true;
@@ -87,14 +104,15 @@ router.get('/fractal', verifyToken, async (req, res) => {
                         console.error("Failed to log history", err);
                     }
                 });
-                Gallery.addToGallery(req.user.id, result.id, hash, (err) => {
+                Gallery.addToGallery(req.user.id, result.id, hash, (err, newGalleryId) => {
                     if (err) {
                         console.error("Failed to add to gallery", err);
+                        return res.status(500).send("Database error");
                     }
-                });
 
-                const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${hash}.png`;
-                res.json({ hash, url: fractalUrl });
+                    const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${hash}.png`;
+                    res.json({ hash, url: fractalUrl, galleryId: newGalleryId });
+                });
             });
         }
     });
