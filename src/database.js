@@ -42,7 +42,7 @@ async function initializeDatabase() {
         const historyTable = `
         CREATE TABLE IF NOT EXISTS history (
             id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
+            user_id TEXT NOT NULL, /* Changed from INTEGER to TEXT */
             fractal_id INTEGER NOT NULL,
             generated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE CASCADE
@@ -51,7 +51,7 @@ async function initializeDatabase() {
         const galleryTable = `
         CREATE TABLE IF NOT EXISTS gallery (
             id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
+            user_id TEXT NOT NULL, /* Changed from INTEGER to TEXT */
             fractal_id INTEGER NOT NULL,
             fractal_hash TEXT NOT NULL,
             added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
