@@ -46,7 +46,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
                 }
             });
 
-            Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash, (err, galleryEntry) => {
+            Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash, async (err, galleryEntry) => {
                 if (err) {
                     console.error("Failed to find gallery entry", err);
                     return res.status(500).send("Database error");
@@ -107,7 +107,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
                         console.error("Failed to log history", err);
                     }
                 });
-                Gallery.addToGallery(req.user.id, result.id, hash, (err, newGalleryId) => {
+                Gallery.addToGallery(req.user.id, result.id, hash, async (err, newGalleryId) => {
                     if (err) {
                         console.error("Failed to add to gallery", err);
                         return res.status(500).send("Database error");
