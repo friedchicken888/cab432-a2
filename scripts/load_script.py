@@ -7,9 +7,9 @@ LOGIN_URL = ""
 FRACTAL_URL = ""
 
 USERS = {
-    "user": {"username": "user", "password": "user"},
-    "user2": {"username": "user2", "password": "user2"},
-    "admin": {"username": "admin", "password": "admin"}
+    "user": {"username": "user", "password": "Testtest123!"},
+    "user2": {"username": "user2", "password": "Testtest123!"},
+    "admin": {"username": "admin", "password": "Testtest123!"}
 }
 
 COLOUR_SCHEMES = ["rainbow", "grayscale", "fire", "hsl"]

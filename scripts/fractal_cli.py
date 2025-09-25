@@ -121,15 +121,9 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
         endpoint = "/gallery"
         title = "My Gallery"
     elif view_type == "all_history":
-        if user_role != "admin":
-            print("Admin privileges required to view all history.")
-            return
         endpoint = "/admin/history"
         title = "All History"
     elif view_type == "all_gallery":
-        if user_role != "admin":
-            print("Admin privileges required to view all gallery.")
-            return
         endpoint = "/admin/gallery"
         title = "All Gallery"
     else:
@@ -259,9 +253,8 @@ def main_menu():
         print("4. Generate Fractal")
         print("5. View My Gallery")
         
-        if current_user_info and current_user_info.get('custom:role', 'user') == "admin":
-            print("6. View All History (Admin)")
-            print("7. View All Gallery (Admin)")
+        print("6. View All History (Admin)")
+        print("7. View All Gallery (Admin)")
         print("8. Delete Gallery Entry")
         print("9. Exit")
 
@@ -354,7 +347,7 @@ def main_menu():
                     break
             input("\nPress Enter to continue...")
         
-        elif choice == "6" and current_user_info and current_user_info.get('custom:role', 'user') == "admin":
+        elif choice == "6":
             current_limit = None
             current_offset = 0
             print("\n--- View All History (Admin) ---")
@@ -411,7 +404,7 @@ def main_menu():
                 else:
                     break
             input("\nPress Enter to continue...")
-        elif choice == "7" and current_user_info and current_user_info.get('custom:role', 'user') == "admin":
+        elif choice == "7":
             current_limit = None
             current_offset = 0
             print("\n--- View All Gallery (Admin) ---")
