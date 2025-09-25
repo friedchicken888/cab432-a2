@@ -107,7 +107,7 @@ def generate_fractal():
             print(f"HTTP Status Code: {e.response.status_code}")
             print(f"Response Body: {e.response.text}")
 
-def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sortBy=None, sortOrder=None, prompt_for_filters=True):
+def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sortBy=None, sortOrder=None, prompt_for_options=True):
     if not current_token:
         print("Please log in first.")
         return
@@ -131,30 +131,46 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
         return
 
     query_params = {}
-    if limit is not None: query_params["limit"] = int(limit)
-    if offset is not None: query_params["offset"] = int(offset)
 
-    if prompt_for_filters:
-        print("\n--- Filters (leave blank to skip) ---")
-        colorScheme = input("Color Scheme: ")
-        power = input("Power: ")
-        iterations = input("Max Iterations: ")
-        width = input("Width: ")
-        height = input("Height: ")
+    if prompt_for_options:
+        print("\n--- Filters, Sorting, and Pagination Options (leave blank for default/skip) ---")
         
+        # Filters
         filters = {}
+        colorScheme = input("Color Scheme: ")
         if colorScheme: filters["colorScheme"] = colorScheme
+        power = input("Power: ")
         if power: filters["power"] = float(power)
+        iterations = input("Max Iterations: ")
         if iterations: filters["iterations"] = int(iterations)
+        width = input("Width: ")
         if width: filters["width"] = int(width)
+        height = input("Height: ")
         if height: filters["height"] = int(height)
+
+        # Sorting
+        sortBy = input("Sort By (e.g., added_at, hash, width - leave blank for default): ")
+        sortOrder = input("Sort Order (ASC/DESC - leave blank for default): ")
+
+        # Pagination
+        limit_input = input(f"Enter limit (leave blank for default 5): ")
+        offset_input = input(f"Enter offset (leave blank for default 0): ")
+        limit = int(limit_input) if limit_input else None
+        offset = int(offset_input) if offset_input else 0
+
+    else:
+        filters = filters or {}
+        limit = limit if limit is not None else 5
+        offset = offset if offset is not None else 0
+        sortBy = sortBy
+        sortOrder = sortOrder
 
     if filters:
         for k, v in filters.items():
             query_params[k] = v
 
-    if sortBy is None: sortBy = input("Sort By (e.g., added_at, hash, width - leave blank for default): ")
-    if sortOrder is None: sortOrder = input("Sort Order (ASC/DESC - leave blank for default): ")
+    if limit is not None: query_params["limit"] = int(limit)
+    if offset is not None: query_params["offset"] = int(offset)
     if sortBy: query_params["sortBy"] = sortBy
     if sortOrder: query_params["sortOrder"] = sortOrder
 
@@ -304,22 +320,18 @@ def user_menu():
             current_limit = None
             current_offset = 0
             print("\n--- View My Gallery ---")
-            limit_input = input(f"Enter limit (leave blank for default 5, current: {current_limit if current_limit is not None else 'default'}):")
-            offset_input = input(f"Enter offset (leave blank for current {current_offset}): ")
             
-            limit = int(limit_input) if limit_input else current_limit
-            offset = int(offset_input) if offset_input else current_offset
+            use_options_input = input("Do you want to apply filters, sorting, or pagination? (y/n): ").lower()
+            prompt_for_options_my_gallery = (use_options_input == 'y')
 
-            if limit is None:
-                limit = 5
-
+            limit = None
+            offset = 0
             filters = None
             sortBy = None
             sortOrder = None
-            prompt_for_filters_my_gallery = True
 
             while True:
-                result = view_data(view_type="my_gallery", limit=limit, offset=offset, filters=filters, sortBy=sortBy, sortOrder=sortOrder, prompt_for_filters=prompt_for_filters_my_gallery)
+                result = view_data(view_type="my_gallery", limit=limit, offset=offset, filters=filters, sortBy=sortBy, sortOrder=sortOrder, prompt_for_options=prompt_for_options_my_gallery)
                 
                 if result:
                     current_limit = result['limit']
@@ -328,7 +340,7 @@ def user_menu():
                     filters = result['filters']
                     sortBy = result['sortBy']
                     sortOrder = result['sortOrder']
-                    prompt_for_filters_my_gallery = False
+                    prompt_for_options_my_gallery = False # Only prompt for options once
                     
                     has_more_pages = current_offset + len(result['data']) < total_count
                     can_go_back = current_offset > 0
@@ -360,22 +372,18 @@ def user_menu():
             current_limit = None
             current_offset = 0
             print("\n--- View All History (Admin) ---")
-            limit_input = input(f"Enter limit (leave blank for default 5, current: {current_limit if current_limit is not None else 'default'}):")
-            offset_input = input(f"Enter offset (leave blank for current {current_offset}): ")
-                
-            limit = int(limit_input) if limit_input else current_limit
-            offset = int(offset_input) if offset_input else current_offset
 
-            if limit is None:
-                limit = 5
+            use_options_input = input("Do you want to apply filters, sorting, or pagination? (y/n): ").lower()
+            prompt_for_options_all_history = (use_options_input == 'y')
 
+            limit = None
+            offset = 0
             filters = None
             sortBy = None
             sortOrder = None
-            prompt_for_filters_all_history = True
 
             while True:
-                result = view_data(view_type="all_history", limit=limit, offset=offset, filters=filters, sortBy=sortBy, sortOrder=sortOrder, prompt_for_filters=prompt_for_filters_all_history)
+                result = view_data(view_type="all_history", limit=limit, offset=offset, filters=filters, sortBy=sortBy, sortOrder=sortOrder, prompt_for_options=prompt_for_options_all_history)
                 
                 if result:
                     current_limit = result['limit']
@@ -384,7 +392,7 @@ def user_menu():
                     filters = result['filters']
                     sortBy = result['sortBy']
                     sortOrder = result['sortOrder']
-                    prompt_for_filters_all_history = False
+                    prompt_for_options_all_history = False
                     
                     has_more_pages = current_offset + len(result['data']) < total_count
                     can_go_back = current_offset > 0
@@ -417,22 +425,18 @@ def user_menu():
             current_limit = None
             current_offset = 0
             print("\n--- View All Gallery (Admin) ---")
-            limit_input = input(f"Enter limit (leave blank for default 5, current: {current_limit if current_limit is not None else 'default'}):")
-            offset_input = input(f"Enter offset (leave blank for current {current_offset}): ")
-                
-            limit = int(limit_input) if limit_input else current_limit
-            offset = int(offset_input) if offset_input else current_offset
 
-            if limit is None:
-                limit = 5
+            use_options_input = input("Do you want to apply filters, sorting, or pagination? (y/n): ").lower()
+            prompt_for_options_all_gallery = (use_options_input == 'y')
 
+            limit = None
+            offset = 0
             filters = None
             sortBy = None
             sortOrder = None
-            prompt_for_filters_all_gallery = True
 
             while True:
-                result = view_data(view_type="all_gallery", limit=limit, offset=offset, filters=filters, sortBy=sortBy, sortOrder=sortOrder, prompt_for_filters=prompt_for_filters_all_gallery)
+                result = view_data(view_type="all_gallery", limit=limit, offset=offset, filters=filters, sortBy=sortBy, sortOrder=sortOrder, prompt_for_options=prompt_for_options_all_gallery)
                 
                 if result:
                     current_limit = result['limit']
@@ -441,7 +445,7 @@ def user_menu():
                     filters = result['filters']
                     sortBy = result['sortBy']
                     sortOrder = result['sortOrder']
-                    prompt_for_filters_all_gallery = False
+                    prompt_for_options_all_gallery = False
                     
                     has_more_pages = current_offset + len(result['data']) < total_count
                     can_go_back = current_offset > 0
