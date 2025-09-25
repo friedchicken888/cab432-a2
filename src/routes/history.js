@@ -75,19 +75,39 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
                         if (row) {
                             console.log(`DEBUG: Deleting image file: ${row.image_path}`);
                             fs.unlink(row.image_path, (err) => {
-                                if (err) console.error("Error deleting image file", err);
-                                else console.log(`DEBUG: Successfully deleted image file: ${row.image_path}`);
+                                if (err) {
+                                    console.error("Error deleting image file", err);
+                                    // Continue to delete fractal record even if image deletion fails
+                                } else {
+                                    console.log(`DEBUG: Successfully deleted image file: ${row.image_path}`);
+                                }
+                                Fractal.deleteFractal(fractalId, (err) => {
+                                    if (err) {
+                                        console.error("Error deleting fractal", err);
+                                        return res.status(500).send("Database error during fractal record deletion.");
+                                    } else {
+                                        console.log(`DEBUG: Successfully deleted fractal record for ID: ${fractalId}`);
+                                        res.send({ message: "Gallery entry and associated fractal deleted successfully" });
+                                    }
+                                });
                             });
+                        } else {
+                            // If no image path found, still delete fractal record if it exists
                             Fractal.deleteFractal(fractalId, (err) => {
-                                if (err) console.error("Error deleting fractal", err);
-                                else console.log(`DEBUG: Successfully deleted fractal record for ID: ${fractalId}`);
+                                if (err) {
+                                    console.error("Error deleting fractal record when image path not found", err);
+                                    return res.status(500).send("Database error during fractal record deletion.");
+                                } else {
+                                    console.log(`DEBUG: Successfully deleted fractal record for ID: ${fractalId} (image path not found).`);
+                                    res.send({ message: "Gallery entry and associated fractal deleted successfully" });
+                                }
                             });
                         }
                     });
+                } else {
+                    res.send({ message: "Gallery entry deleted successfully" });
                 }
             });
-
-            res.send({ message: "Gallery entry deleted successfully" });
         });
     });
 });
