@@ -67,16 +67,20 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
                 }
 
                 if (row.count === 0) {
+                    console.log(`DEBUG: Fractal with hash ${fractalHash} has no more gallery references. Attempting to delete image and fractal record.`);
                     Fractal.getFractalImagePath(fractalId, (err, row) => {
                         if (err) {
                             return console.error("Error getting image path", err);
                         }
                         if (row) {
+                            console.log(`DEBUG: Deleting image file: ${row.image_path}`);
                             fs.unlink(row.image_path, (err) => {
                                 if (err) console.error("Error deleting image file", err);
+                                else console.log(`DEBUG: Successfully deleted image file: ${row.image_path}`);
                             });
                             Fractal.deleteFractal(fractalId, (err) => {
                                 if (err) console.error("Error deleting fractal", err);
+                                else console.log(`DEBUG: Successfully deleted fractal record for ID: ${fractalId}`);
                             });
                         }
                     });
