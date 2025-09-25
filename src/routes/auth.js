@@ -46,7 +46,6 @@ async function verifyToken(req, res, next) {
         };
         next();
     } catch (err) {
-        console.error('JWT verification error:', err);
         res.status(403).send('Invalid token.');
     }
 }
@@ -74,7 +73,6 @@ router.post('/signup', async (req, res) => {
         await cognitoClient.send(command);
         res.status(200).send('User registered successfully. Please check your email for a confirmation code.');
     } catch (error) {
-        console.error('Cognito SignUp error:', error);
         res.status(500).send(error.message);
     }
 });
@@ -99,7 +97,6 @@ router.post('/confirm', async (req, res) => {
         await cognitoClient.send(command);
         res.status(200).send('User confirmed successfully.');
     } catch (error) {
-        console.error('Cognito ConfirmSignUp error:', error);
         res.status(500).send(error.message);
     }
 });
@@ -132,7 +129,6 @@ router.post('/login', async (req, res) => {
             tokenType: response.AuthenticationResult.TokenType,
         });
     } catch (error) {
-        console.error('Cognito InitiateAuth error:', error);
         res.status(500).send(error.message);
     }
 });
