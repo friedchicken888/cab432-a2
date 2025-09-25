@@ -58,7 +58,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
                     const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
                     return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
                 } else {
-                    Gallery.addToGallery(req.user.id, row.id, row.hash, (err, newGalleryId) => {
+                    Gallery.addToGallery(req.user.id, row.id, row.hash, async (err, newGalleryId) => {
                         if (err) {
                             console.error("Failed to add to gallery", err);
                             return res.status(500).send("Database error");
