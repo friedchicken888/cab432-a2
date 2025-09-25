@@ -42,7 +42,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
 
         if (row) {
             // Fractal exists, log to history and add to gallery (if not already there)
-            History.createHistoryEntry(req.user.id, row.id, (err) => {
+            History.createHistoryEntry(req.user.id, req.user.username, row.id, (err) => {
                 if (err) {
                     console.error("Failed to log history", err);
                 }
@@ -82,7 +82,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
                     return res.status(500).send("Failed to save fractal.");
                 }
 
-                History.createHistoryEntry(req.user.id, result.id, (err) => {
+                History.createHistoryEntry(req.user.id, req.user.username, result.id, (err) => {
                     if (err) {
                         console.error("Failed to log history", err);
                     }

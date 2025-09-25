@@ -166,7 +166,7 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
         r.raise_for_status()
         response_data = r.json()
         data = response_data.get('data', [])
-        total_count = response_data.get('totalCount', len(data))
+        total_count = int(response_data.get('totalCount', len(data)))
         current_limit = response_data.get('limit', len(data))
         current_offset = response_data.get('offset', 0)
 
