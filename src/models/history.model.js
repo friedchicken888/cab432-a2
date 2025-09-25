@@ -2,57 +2,70 @@ const db = require('../database.js');
 
 exports.getHistoryForUser = (userId, callback) => {
     const sql = `
-        SELECT h.id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f.offsetX, f.offsetY, f.colorScheme, h.generated_at
+        SELECT h.id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", h.generated_at
         FROM history h
         JOIN fractals f ON h.fractal_id = f.id
-        WHERE h.user_id = ?
+        WHERE h.user_id = $1
         ORDER BY h.generated_at DESC
     `;
-    db.all(sql, [userId], callback);
+    db.query(sql, [userId], (err, result) => {
+        if (err) return callback(err);
+        callback(null, result.rows);
+    });
 };
 
 exports.createHistoryEntry = (userId, fractalId, callback) => {
-    const sql = "INSERT INTO history (user_id, fractal_id) VALUES (?, ?)";
-    db.run(sql, [userId, fractalId], callback);
+    const sql = "INSERT INTO history (user_id, fractal_id) VALUES ($1, $2) RETURNING id";
+    db.query(sql, [userId, fractalId], (err, result) => {
+        if (err) return callback(err);
+        callback(null, { id: result.rows[0].id });
+    });
 };
 
 exports.getHistoryEntry = (id, userId, callback) => {
-    const sql = "SELECT fractal_id FROM history WHERE id = ? AND user_id = ?";
-    db.get(sql, [id, userId], callback);
+    const sql = "SELECT fractal_id FROM history WHERE id = $1 AND user_id = $2";
+    db.query(sql, [id, userId], (err, result) => {
+        if (err) return callback(err);
+        callback(null, result.rows[0]);
+    });
 };
 
 exports.deleteHistoryEntry = (id, callback) => {
-    const sql = "DELETE FROM history WHERE id = ?";
-    db.run(sql, [id], callback);
+    const sql = "DELETE FROM history WHERE id = $1";
+    db.query(sql, [id], callback);
 };
 
 exports.countHistoryByFractalId = (fractalId, callback) => {
-    const sql = "SELECT COUNT(*) as count FROM history WHERE fractal_id = ?";
-    db.get(sql, [fractalId], callback);
+    const sql = "SELECT COUNT(*) as count FROM history WHERE fractal_id = $1";
+    db.query(sql, [fractalId], (err, result) => {
+        if (err) return callback(err);
+        callback(null, result.rows[0]);
+    });
 };
 
 exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset, callback) => {
     let whereClauses = [];
     let params = [];
+    let paramIndex = 1;
 
     if (filters.colorScheme) {
-        whereClauses.push(`f.colorScheme = ?`);
+        whereClauses.push(`f."colorScheme" = $${paramIndex++}`);
         params.push(filters.colorScheme);
     }
     if (filters.power) {
-        whereClauses.push(`f.power = ?`);
+        whereClauses.push(`f.power = $${paramIndex++}`);
         params.push(filters.power);
     }
     if (filters.iterations) {
-        whereClauses.push(`f.iterations = ?`);
+        whereClauses.push(`f.iterations = $${paramIndex++}`);
         params.push(filters.iterations);
     }
     if (filters.width) {
-        whereClauses.push(`f.width = ?`);
+        whereClauses.push(`f.width = $${paramIndex++}`);
         params.push(filters.width);
     }
     if (filters.height) {
-        whereClauses.push(`f.height = ?`);
+        whereClauses.push(`f.height = $${paramIndex++}`);
         params.push(filters.height);
     }
 
@@ -62,22 +75,22 @@ exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset, callback) =>
     const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'generated_at';
     const order = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
 
-    const countSql = `SELECT COUNT(*) as totalCount FROM history h LEFT JOIN fractals f ON h.fractal_id = f.id ${whereSql}`;
-    db.get(countSql, params, (err, countRow) => {
+    const countSql = `SELECT COUNT(*) as "totalCount" FROM history h LEFT JOIN fractals f ON h.fractal_id = f.id ${whereSql}`;
+    db.query(countSql, params, (err, countResult) => {
         if (err) return callback(err);
-        const totalCount = countRow.totalCount;
+        const totalCount = countResult.rows[0].totalCount;
 
         const dataSql = `
-            SELECT h.id, h.user_id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f.offsetX, f.offsetY, f.colorScheme, h.generated_at
+            SELECT h.id, h.user_id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", h.generated_at
             FROM history h
             LEFT JOIN fractals f ON h.fractal_id = f.id
             ${whereSql}
             ORDER BY ${sortColumn} ${order}
-            LIMIT ? OFFSET ?
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
         `;
-        db.all(dataSql, [...params, limit, offset], (err, rows) => {
+        db.query(dataSql, [...params, limit, offset], (err, dataResult) => {
             if (err) return callback(err);
-            callback(null, rows, totalCount);
+            callback(null, dataResult.rows, totalCount);
         });
     });
 };

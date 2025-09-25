@@ -1,32 +1,33 @@
 const db = require('../database.js');
 
 exports.addToGallery = (userId, fractalId, fractalHash, callback) => {
-    const sql = "INSERT OR IGNORE INTO gallery (user_id, fractal_id, fractal_hash) VALUES (?, ?, ?)";
-    db.run(sql, [userId, fractalId, fractalHash], callback);
+    const sql = "INSERT INTO gallery (user_id, fractal_id, fractal_hash) VALUES ($1, $2, $3) ON CONFLICT (user_id, fractal_hash) DO NOTHING";
+    db.query(sql, [userId, fractalId, fractalHash], callback);
 };
 
 exports.getGalleryForUser = (userId, filters, sortBy, sortOrder, limit, offset, callback) => {
-    let whereClauses = [`g.user_id = ?`];
+    let whereClauses = [`g.user_id = $1`];
     let params = [userId];
+    let paramIndex = 2;
 
     if (filters.colorScheme) {
-        whereClauses.push(`f.colorScheme = ?`);
+        whereClauses.push(`f."colorScheme" = $${paramIndex++}`);
         params.push(filters.colorScheme);
     }
     if (filters.power) {
-        whereClauses.push(`f.power = ?`);
+        whereClauses.push(`f.power = $${paramIndex++}`);
         params.push(filters.power);
     }
     if (filters.iterations) {
-        whereClauses.push(`f.iterations = ?`);
+        whereClauses.push(`f.iterations = $${paramIndex++}`);
         params.push(filters.iterations);
     }
     if (filters.width) {
-        whereClauses.push(`f.width = ?`);
+        whereClauses.push(`f.width = $${paramIndex++}`);
         params.push(filters.width);
     }
     if (filters.height) {
-        whereClauses.push(`f.height = ?`);
+        whereClauses.push(`f.height = $${paramIndex++}`);
         params.push(filters.height);
     }
 
@@ -36,22 +37,22 @@ exports.getGalleryForUser = (userId, filters, sortBy, sortOrder, limit, offset, 
     const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'added_at';
     const order = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
 
-    const countSql = `SELECT COUNT(*) as totalCount FROM gallery g JOIN fractals f ON g.fractal_id = f.id ${whereSql}`;
-    db.get(countSql, params, (err, countRow) => {
+    const countSql = `SELECT COUNT(*) as "totalCount" FROM gallery g JOIN fractals f ON g.fractal_id = f.id ${whereSql}`;
+    db.query(countSql, params, (err, countResult) => {
         if (err) return callback(err);
-        const totalCount = countRow.totalCount;
+        const totalCount = countResult.rows[0].totalCount;
 
         const dataSql = `
-            SELECT g.id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f.offsetX, f.offsetY, f.colorScheme, g.added_at, g.fractal_hash
+            SELECT g.id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", g.added_at, g.fractal_hash
             FROM gallery g
             JOIN fractals f ON g.fractal_id = f.id
             ${whereSql}
             ORDER BY ${sortColumn} ${order}
-            LIMIT ? OFFSET ?
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
         `;
-        db.all(dataSql, [...params, limit, offset], (err, rows) => {
+        db.query(dataSql, [...params, limit, offset], (err, dataResult) => {
             if (err) return callback(err);
-            callback(null, rows, totalCount);
+            callback(null, dataResult.rows, totalCount);
         });
     });
 };
@@ -60,55 +61,62 @@ exports.getGalleryEntry = (id, userId, isAdmin, callback) => {
     let sql;
     let params;
     if (isAdmin) {
-        sql = "SELECT fractal_id, fractal_hash FROM gallery WHERE id = ?";
+        sql = "SELECT fractal_id, fractal_hash FROM gallery WHERE id = $1";
         params = [id];
     } else {
-        sql = "SELECT fractal_id, fractal_hash FROM gallery WHERE id = ? AND user_id = ?";
+        sql = "SELECT fractal_id, fractal_hash FROM gallery WHERE id = $1 AND user_id = $2";
         params = [id, userId];
     }
-    db.get(sql, params, callback);
+    db.query(sql, params, (err, result) => {
+        if (err) return callback(err);
+        callback(null, result.rows[0]);
+    });
 };
 
 exports.deleteGalleryEntry = (id, userId, isAdmin, callback) => {
     let sql;
     let params;
     if (isAdmin) {
-        sql = "DELETE FROM gallery WHERE id = ?";
+        sql = "DELETE FROM gallery WHERE id = $1";
         params = [id];
     } else {
-        sql = "DELETE FROM gallery WHERE id = ? AND user_id = ?";
+        sql = "DELETE FROM gallery WHERE id = $1 AND user_id = $2";
         params = [id, userId];
     }
-    db.run(sql, params, callback);
+    db.query(sql, params, callback);
 };
 
 exports.countGalleryByFractalHash = (fractalHash, callback) => {
-    const sql = "SELECT COUNT(*) as count FROM gallery WHERE fractal_hash = ?";
-    db.get(sql, [fractalHash], callback);
+    const sql = "SELECT COUNT(*) as count FROM gallery WHERE fractal_hash = $1";
+    db.query(sql, [fractalHash], (err, result) => {
+        if (err) return callback(err);
+        callback(null, result.rows[0]);
+    });
 };
 
 exports.getAllGallery = (filters, sortBy, sortOrder, limit, offset, callback) => {
     let whereClauses = [];
     let params = [];
+    let paramIndex = 1;
 
     if (filters.colorScheme) {
-        whereClauses.push(`f.colorScheme = ?`);
+        whereClauses.push(`f."colorScheme" = $${paramIndex++}`);
         params.push(filters.colorScheme);
     }
     if (filters.power) {
-        whereClauses.push(`f.power = ?`);
+        whereClauses.push(`f.power = $${paramIndex++}`);
         params.push(filters.power);
     }
     if (filters.iterations) {
-        whereClauses.push(`f.iterations = ?`);
+        whereClauses.push(`f.iterations = $${paramIndex++}`);
         params.push(filters.iterations);
     }
     if (filters.width) {
-        whereClauses.push(`f.width = ?`);
+        whereClauses.push(`f.width = $${paramIndex++}`);
         params.push(filters.width);
     }
     if (filters.height) {
-        whereClauses.push(`f.height = ?`);
+        whereClauses.push(`f.height = $${paramIndex++}`);
         params.push(filters.height);
     }
 
@@ -118,22 +126,22 @@ exports.getAllGallery = (filters, sortBy, sortOrder, limit, offset, callback) =>
     const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'added_at';
     const order = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
 
-    const countSql = `SELECT COUNT(*) as totalCount FROM gallery g JOIN fractals f ON g.fractal_id = f.id ${whereSql}`;
-    db.get(countSql, params, (err, countRow) => {
+    const countSql = `SELECT COUNT(*) as "totalCount" FROM gallery g JOIN fractals f ON g.fractal_id = f.id ${whereSql}`;
+    db.query(countSql, params, (err, countResult) => {
         if (err) return callback(err);
-        const totalCount = countRow.totalCount;
+        const totalCount = countResult.rows[0].totalCount;
 
         const dataSql = `
-            SELECT g.id, g.user_id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f.offsetX, f.offsetY, f.colorScheme, g.added_at, g.fractal_hash
+            SELECT g.id, g.user_id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", g.added_at, g.fractal_hash
             FROM gallery g
             JOIN fractals f ON g.fractal_id = f.id
             ${whereSql}
             ORDER BY ${sortColumn} ${order}
-            LIMIT ? OFFSET ?
+            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
         `;
-        db.all(dataSql, [...params, limit, offset], (err, rows) => {
+        db.query(dataSql, [...params, limit, offset], (err, dataResult) => {
             if (err) return callback(err);
-            callback(null, rows, totalCount);
+            callback(null, dataResult.rows, totalCount);
         });
     });
 };
