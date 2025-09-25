@@ -6,7 +6,6 @@
  */
 require('dotenv').config();
 const express = require('express');
-const fs = require('fs');
 const authRouter = require('./src/routes/auth').router;
 const fractalRouter = require('./src/routes/fractal');
 const historyRouter = require('./src/routes/history');
@@ -16,11 +15,6 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use('/fractals', express.static('fractals'));
-
-const fractalsDir = './fractals';
-if (!fs.existsSync(fractalsDir)){
-    fs.mkdirSync(fractalsDir);
-}
 
 app.use('/api/auth', authRouter);
 app.use('/api', fractalRouter);

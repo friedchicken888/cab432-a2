@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('./auth.js');
-const fs = require('fs');
 const History = require('../models/history.model.js');
 const Fractal = require('../models/fractal.model.js');
 const Gallery = require('../models/gallery.model.js');
+const s3Service = require('../services/s3Service');
 
 router.get('/gallery', verifyToken, (req, res) => {
     let limit = parseInt(req.query.limit) || 5; // Default limit to 5
@@ -24,14 +24,14 @@ router.get('/gallery', verifyToken, (req, res) => {
     const sortBy = req.query.sortBy;
     const sortOrder = req.query.sortOrder;
 
-    Gallery.getGalleryForUser(req.user.id, filters, sortBy, sortOrder, limit, offset, (err, rows, totalCount) => {
+    Gallery.getGalleryForUser(req.user.id, filters, sortBy, sortOrder, limit, offset, async (err, rows, totalCount) => {
         if (err) {
             return res.status(500).send("Database error");
         }
-        const galleryWithUrls = rows.map(row => {
-            const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${row.hash}.png`;
+        const galleryWithUrls = await Promise.all(rows.map(async row => {
+            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
             return { ...row, url: fractalUrl };
-        });
+        }));
         res.json({ data: galleryWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
     });
 });
@@ -77,21 +77,16 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
 
                 if (parseInt(countRow.count) === 0) {
                     console.log(`DEBUG: Fractal with hash ${fractalHash} has no more gallery references. Attempting to delete image and fractal record.`);
-                    Fractal.getFractalImagePath(fractalId, (err, fractalRow) => {
+                    Fractal.getFractalS3Key(fractalId, (err, fractalRow) => {
                         if (err) {
-                            console.error(`DEBUG: Error getting image path for fractalId ${fractalId}:`, err);
-                            return res.status(500).send("Database error during image path retrieval.");
+                            console.error(`DEBUG: Error getting S3 key for fractalId ${fractalId}:`, err);
+                            return res.status(500).send("Database error during S3 key retrieval.");
                         }
-                        if (fractalRow && fractalRow.image_path) {
-                            const imagePathToDelete = fractalRow.image_path;
-                            console.log(`DEBUG: Attempting to delete image file: ${imagePathToDelete}`);
-                            fs.unlink(imagePathToDelete, (unlinkErr) => {
-                                if (unlinkErr) {
-                                    console.error(`DEBUG: Error deleting image file ${imagePathToDelete}:`, unlinkErr);
-                                    // Continue to delete fractal record even if image deletion fails
-                                } else {
-                                    console.log(`DEBUG: Successfully deleted image file: ${imagePathToDelete}`);
-                                }
+                        if (fractalRow && fractalRow.s3_key) {
+                            const s3KeyToDelete = fractalRow.s3_key;
+                            console.log(`DEBUG: Attempting to delete S3 object: ${s3KeyToDelete}`);
+                            s3Service.deleteFile(s3KeyToDelete).then(() => {
+                                console.log(`DEBUG: Successfully deleted S3 object: ${s3KeyToDelete}`);
                                 Fractal.deleteFractal(fractalId, (deleteFractalErr) => {
                                     if (deleteFractalErr) {
                                         console.error(`DEBUG: Error deleting fractal record for ID ${fractalId}:`, deleteFractalErr);
@@ -147,14 +142,14 @@ router.get('/admin/history', verifyToken, (req, res) => {
     const sortBy = req.query.sortBy;
     const sortOrder = req.query.sortOrder;
 
-    History.getAllHistory(filters, sortBy, sortOrder, limit, offset, (err, rows, totalCount) => {
+    History.getAllHistory(filters, sortBy, sortOrder, limit, offset, async (err, rows, totalCount) => {
         if (err) {
             return res.status(500).send("Database error");
         }
-        const historyWithUrls = rows.map(row => {
-            const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${row.hash}.png`;
+        const historyWithUrls = await Promise.all(rows.map(async row => {
+            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
             return { ...row, url: fractalUrl };
-        });
+        }));
         res.json({ data: historyWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
     });
 });
@@ -181,14 +176,14 @@ router.get('/admin/gallery', verifyToken, (req, res) => {
     const sortBy = req.query.sortBy;
     const sortOrder = req.query.sortOrder;
 
-    Gallery.getAllGallery(filters, sortBy, sortOrder, limit, offset, (err, rows, totalCount) => {
+    Gallery.getAllGallery(filters, sortBy, sortOrder, limit, offset, async (err, rows, totalCount) => {
         if (err) {
             return res.status(500).send("Database error");
         }
-        const galleryWithUrls = rows.map(row => {
-            const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${row.hash}.png`;
+        const galleryWithUrls = await Promise.all(rows.map(async row => {
+            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
             return { ...row, url: fractalUrl };
-        });
+        }));
         res.json({ data: galleryWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
     });
 });

@@ -1,14 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { generateFractal } = require('../fractal');
-const fs = require('fs');
 const crypto = require('crypto');
 const { verifyToken } = require('./auth.js');
 const Fractal = require('../models/fractal.model.js');
 const History = require('../models/history.model.js');
 const Gallery = require('../models/gallery.model.js');
-
-const fractalsDir = './fractals';
+const s3Service = require('../services/s3Service');
 
 // Track if a fractal is currently being generated
 let isGenerating = false;
@@ -57,7 +55,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
                 let galleryId;
                 if (galleryEntry) {
                     galleryId = galleryEntry.id;
-                    const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${row.hash}.png`;
+                    const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
                     return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
                 } else {
                     Gallery.addToGallery(req.user.id, row.id, row.hash, (err, newGalleryId) => {
@@ -66,7 +64,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
                             return res.status(500).send("Database error");
                         }
                         galleryId = newGalleryId;
-                        const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${row.hash}.png`;
+                        const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
                         return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
                     });
                 }
@@ -88,10 +86,15 @@ router.get('/fractal', verifyToken, async (req, res) => {
                 return res.status(499).send('Fractal generation aborted due to time limit.');
             }
 
-            const imagePath = `${fractalsDir}/${hash}.png`;
-            fs.writeFileSync(imagePath, buffer);
+            let s3Key;
+            try {
+                s3Key = await s3Service.uploadFile(buffer, 'image/png', 'fractals');
+            } catch (uploadErr) {
+                console.error("Error uploading fractal to S3:", uploadErr);
+                return res.status(500).send("Failed to upload fractal image.");
+            }
 
-            const fractalData = { ...options, hash, imagePath };
+            const fractalData = { ...options, hash, s3Key };
 
             Fractal.createFractal(fractalData, (err, result) => {
                 if (err) {
@@ -110,7 +113,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
                         return res.status(500).send("Database error");
                     }
 
-                    const fractalUrl = `${req.protocol}://${req.get('host')}/fractals/${hash}.png`;
+                    const fractalUrl = await s3Service.getPresignedUrl(s3Key);
                     res.json({ hash, url: fractalUrl, galleryId: newGalleryId });
                 });
             });

@@ -37,10 +37,7 @@ exports.deleteHistoryEntry = (id, callback) => {
 
 exports.countHistoryByFractalId = (fractalId, callback) => {
     const sql = "SELECT COUNT(*) as count FROM history WHERE fractal_id = $1";
-    db.query(sql, [fractalId], (err, result) => {
-        if (err) return callback(err);
-        callback(null, result.rows[0]);
-    });
+        callback(null, parseInt(result.rows[0].count));
 };
 
 exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset, callback) => {
@@ -78,10 +75,10 @@ exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset, callback) =>
     const countSql = `SELECT COUNT(*) as "totalCount" FROM history h LEFT JOIN fractals f ON h.fractal_id = f.id ${whereSql}`;
     db.query(countSql, params, (err, countResult) => {
         if (err) return callback(err);
-        const totalCount = countResult.rows[0].totalCount;
+        const totalCount = parseInt(countResult.rows[0].totalCount);
 
         const dataSql = `
-            SELECT h.id, h.user_id, h.username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", h.generated_at
+            SELECT h.id, h.user_id, h.username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", h.generated_at, f.s3_key
             FROM history h
             LEFT JOIN fractals f ON h.fractal_id = f.id
             ${whereSql}

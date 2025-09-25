@@ -35,7 +35,7 @@ async function initializeDatabase() {
             "offsetX" REAL NOT NULL,
             "offsetY" REAL NOT NULL,
             "colorScheme" TEXT NOT NULL,
-            image_path TEXT NOT NULL,
+            s3_key TEXT UNIQUE NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )`;
 
