@@ -20,9 +20,13 @@ def login(username, password):
     try:
         resp = requests.post(LOGIN_URL, json={"username": username, "password": password})
         if resp.status_code == 200:
-            token = resp.json().get('token')
-            print("Login successful.")
-            return token
+            token = resp.json().get('idToken')
+            if token:
+                print("Login successful.")
+                return token
+            else:
+                print("Login failed: idToken not found in response.")
+                return None
         else:
             print(f"Login failed with status {resp.status_code}: {resp.text}")
             return None
