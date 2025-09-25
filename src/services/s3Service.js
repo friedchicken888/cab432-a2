@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, CreateBucketCommand, PutBucketTaggingCommand, HeadBucketCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { v4: uuidv4 } = require('uuid');
 const dotenv = require('dotenv');
@@ -7,15 +7,61 @@ dotenv.config();
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
 });
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
+const QUT_USERNAME = process.env.S3_TAG_QUT_USERNAME;
+const PURPOSE = process.env.S3_TAG_PURPOSE;
 
 const s3Service = {
+  async ensureBucketAndTags() {
+    if (!BUCKET_NAME) {
+      console.error('S3_BUCKET_NAME is not defined in .env');
+      throw new Error('S3_BUCKET_NAME is not defined.');
+    }
+
+    try {
+      // Check if bucket exists
+      await s3Client.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }));
+      console.log(`S3 Bucket '${BUCKET_NAME}' already exists.`);
+    } catch (error) {
+      if (error.name === 'NotFound' || error.name === 'NoSuchBucket') {
+        console.log(`S3 Bucket '${BUCKET_NAME}' not found. Attempting to create it.`);
+        try {
+          await s3Client.send(new CreateBucketCommand({ Bucket: BUCKET_NAME }));
+          console.log(`S3 Bucket '${BUCKET_NAME}' created successfully.`);
+        } catch (createError) {
+          console.error(`Error creating S3 Bucket '${BUCKET_NAME}':`, createError);
+          throw new Error(`Failed to create S3 Bucket '${BUCKET_NAME}'.`);
+        }
+      } else {
+        console.error(`Error checking S3 Bucket '${BUCKET_NAME}':`, error);
+        throw new Error(`Failed to check S3 Bucket '${BUCKET_NAME}'.`);
+      }
+    }
+
+    // Apply tags
+    if (QUT_USERNAME && PURPOSE) {
+      try {
+        await s3Client.send(new PutBucketTaggingCommand({
+          Bucket: BUCKET_NAME,
+          Tagging: {
+            TagSet: [
+              { Key: 'qut-username', Value: QUT_USERNAME },
+              { Key: 'purpose', Value: PURPOSE },
+            ],
+          },
+        }));
+        console.log(`S3 Bucket '${BUCKET_NAME}' tagged successfully.`);
+      } catch (tagError) {
+        console.error(`Error tagging S3 Bucket '${BUCKET_NAME}':`, tagError);
+        // Don't throw error here, as bucket might still be usable without tags
+      }
+    } else {
+      console.warn('S3_TAG_QUT_USERNAME or S3_TAG_PURPOSE not defined. S3 bucket will not be tagged programmatically.');
+    }
+  },
+
   /**
    * Uploads a file buffer to S3.
    * @param {Buffer} fileBuffer - The buffer of the file to upload.
