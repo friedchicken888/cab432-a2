@@ -42,7 +42,7 @@ async function verifyToken(req, res, next) {
             id: payload.sub, // Cognito User ID
             username: payload['cognito:username'],
             email: payload.email,
-            role: payload['custom:role'] || 'user' // Assuming a custom:role attribute in Cognito
+            role: (payload['cognito:groups'] && payload['cognito:groups'].includes('admin')) ? 'admin' : 'user'
         };
         next();
     } catch (err) {
