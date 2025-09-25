@@ -75,7 +75,7 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
                 }
                 console.log(`DEBUG: Count of other gallery references for fractalHash ${fractalHash}: ${countRow.count}`);
 
-                if (countRow.count === 0) {
+                if (parseInt(countRow.count) === 0) {
                     console.log(`DEBUG: Fractal with hash ${fractalHash} has no more gallery references. Attempting to delete image and fractal record.`);
                     Fractal.getFractalImagePath(fractalId, (err, fractalRow) => {
                         if (err) {
