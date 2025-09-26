@@ -2,8 +2,12 @@ import os
 import requests
 import json
 import jwt # Python JWT library
+from dotenv import load_dotenv
+import os
 
 BASE_URL = ""
+
+load_dotenv() # Load environment variables from .env file
 
 current_user_info = None # Stores decoded JWT payload
 current_token = None # Stores the raw ID Token
@@ -222,22 +226,53 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
             
             # New interactive section
             while True:
-                action = input("Press Enter to continue, or enter an ID to get its URL: ").strip()
-                if not action:
-                    break # Exit this inner loop to continue with pagination/main menu
+                has_more_pages = current_offset + len(data) < total_count
+                can_go_back = current_offset > 0
+
+                nav_options = []
+                if can_go_back:
+                    nav_options.append("1 for previous page")
+                if has_more_pages:
+                    nav_options.append("2 for next page")
+                nav_options.append("0 to get link from ID")
+                nav_options.append("Enter to continue")
+
+                prompt_text = "Enter " + ", ".join(nav_options) + ": "
+                action = input(prompt_text).strip()
                 
-                try:
-                    selected_id = int(action)
-                    found_entry = next((e for e in data if e.get('id') == selected_id), None)
-                    if found_entry:
-                        if found_entry.get('url'):
-                            print(f"\nURL for ID {selected_id}: {found_entry['url']}\n")
-                        else:
-                            print(f"\nNo URL available for ID {selected_id} (fractal might be deleted).\n")
+                if not action:
+                    break # Exit this inner loop to continue with main menu
+                
+                if action == '1': # Previous Page
+                    if can_go_back:
+                        clear_terminal()
+                        offset = max(0, offset - current_limit)
+                        return {'data': data, 'totalCount': total_count, 'limit': current_limit, 'offset': offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder, 're_render': True}
                     else:
-                        print(f"\nNo entry found with ID {selected_id} on this page.\n")
-                except ValueError:
-                    print("\nInvalid input. Please enter an ID number or press Enter.\n")
+                        print("\nAlready on the first page.\n")
+                elif action == '2': # Next Page
+                    if has_more_pages:
+                        clear_terminal()
+                        offset += current_limit
+                        return {'data': data, 'totalCount': total_count, 'limit': current_limit, 'offset': offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder, 're_render': True}
+                    else:
+                        print("\nAlready on the last page.\n")
+                elif action == '0': # Get link from ID
+                    id_input = input("Enter the ID to get its URL: ").strip()
+                    try:
+                        selected_id = int(id_input)
+                        found_entry = next((e for e in data if e.get('id') == selected_id), None)
+                        if found_entry:
+                            if found_entry.get('url'):
+                                print(f"\nURL for ID {selected_id}: {found_entry['url']}\n")
+                            else:
+                                print(f"\nNo URL available for ID {selected_id} (fractal might be deleted).\n")
+                        else:
+                            print(f"\nNo entry found with ID {selected_id} on this page.\n")
+                    except ValueError:
+                        print("\nInvalid input. Please enter a valid ID number.\n")
+                else:
+                    print("\nInvalid input. Please enter 1, 2, 0, or press Enter.\n")
 
             return {'data': data, 'totalCount': total_count, 'limit': current_limit, 'offset': current_offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder}
         else:
@@ -281,29 +316,13 @@ def auth_menu():
     while True:
         clear_terminal()
         print("\n--- Authentication Menu ---")
-        print("1. Sign Up")
-        print("2. Confirm Sign Up")
-        print("3. Login")
+        print("1. Login")
+        print("2. Sign Up")
+        print("3. Confirm Sign Up")
         print("4. Exit")
-
-        choice = input("Enter your choice: ")
+        choice = input("\nEnter your choice: ")
 
         if choice == "1":
-            clear_terminal()
-            print("\n--- Sign Up ---")
-            username = input("Enter username: ")
-            email = input("Enter email: ")
-            password = input("Enter password: ")
-            signup(username, email, password)
-            input("\nPress Enter to continue...")
-        elif choice == "2":
-            clear_terminal()
-            print("\n--- Confirm Sign Up ---")
-            username = input("Enter username: ")
-            confirmation_code = input("Enter confirmation code from email: ")
-            confirm_signup(username, confirmation_code)
-            input("\nPress Enter to continue...")
-        elif choice == "3":
             clear_terminal()
             print("\n--- Login ---")
             username = input("Enter username: ")
@@ -314,6 +333,21 @@ def auth_menu():
                 current_token = None
             else:
                 input("\nPress Enter to continue...")
+        elif choice == "2":
+            clear_terminal()
+            print("\n--- Sign Up ---")
+            username = input("Enter username: ")
+            email = input("Enter email: ")
+            password = input("Enter password: ")
+            signup(username, email, password)
+            input("\nPress Enter to continue...")
+        elif choice == "3":
+            clear_terminal()
+            print("\n--- Confirm Sign Up ---")
+            username = input("Enter username: ")
+            confirmation_code = input("Enter confirmation code from email: ")
+            confirm_signup(username, confirmation_code)
+            input("\nPress Enter to continue...")
         elif choice == "4":
             clear_terminal()
             print("\nExiting CLI. Goodbye!")
@@ -375,28 +409,11 @@ def user_menu():
                     sortOrder = result['sortOrder']
                     prompt_for_options_my_gallery = False # Only prompt for options once
                     
-                    has_more_pages = current_offset + len(result['data']) < total_count
-                    can_go_back = current_offset > 0
-
-                    if result['data'] and (has_more_pages or can_go_back):
-                        print("\nNavigation:")
-                        if can_go_back:
-                            print("  1. Previous Page")
-                        if has_more_pages:
-                            print("  2. Next Page")
-                        print("  Any other key to exit pagination.")
-
-                        nav_choice = input("Enter your choice: ")
-
-                        if nav_choice == '1' and can_go_back:
-                            clear_terminal()
-                            offset = max(0, offset - current_limit)
-                            continue
-                        elif nav_choice == '2' and has_more_pages:
-                            clear_terminal()
-                            offset += current_limit
-                            continue
-                    break
+                    if result.get('re_render'):
+                        offset = result['offset'] # Update offset for the next iteration
+                        continue # Continue the loop to re-render with new offset
+                    else:
+                        break # Exit the loop if not re-rendering
                 else:
                     break
         
@@ -426,30 +443,11 @@ def user_menu():
                     sortOrder = result['sortOrder']
                     prompt_for_options_all_history = False
                     
-                    has_more_pages = current_offset + len(result['data']) < total_count
-                    can_go_back = current_offset > 0
-
-                    if result['data'] and (has_more_pages or can_go_back):
-                        print("\nNavigation:")
-                        if can_go_back:
-                            print("  1. Previous Page")
-                        if has_more_pages:
-                            print("  2. Next Page")
-                        print("  Any other key to exit pagination.")
-
-                        nav_choice = input("Enter your choice: ")
-
-                        if nav_choice == '1' and can_go_back:
-                            clear_terminal()
-                            offset = max(0, offset - current_limit)
-                            
-                            continue
-                        elif nav_choice == '2' and has_more_pages:
-                            clear_terminal()
-                            offset += current_limit
-                            
-                            continue
-                    break
+                    if result.get('re_render'):
+                        offset = result['offset'] # Update offset for the next iteration
+                        continue # Continue the loop to re-render with new offset
+                    else:
+                        break # Exit the loop if not re-rendering
                 else:
                     break
         elif choice == "4":
@@ -478,29 +476,11 @@ def user_menu():
                     sortOrder = result['sortOrder']
                     prompt_for_options_all_gallery = False
                     
-                    has_more_pages = current_offset + len(result['data']) < total_count
-                    can_go_back = current_offset > 0
-
-                    if result['data'] and (has_more_pages or can_go_back):
-                        print("\nNavigation:")
-                        if can_go_back:
-                            print("  1. Previous Page")
-                        if has_more_pages:
-                            print("  2. Next Page")
-                        print("  Any other key to exit pagination.")
-
-                        nav_choice = input("Enter your choice: ")
-
-                        if nav_choice == '1' and can_go_back:
-                            clear_terminal()
-                            offset = max(0, offset - current_limit)
-                            continue
-                        elif nav_choice == '2' and has_more_pages:
-                            clear_terminal()
-                            offset += current_limit
-                            
-                            continue
-                    break
+                    if result.get('re_render'):
+                        offset = result['offset'] # Update offset for the next iteration
+                        continue # Continue the loop to re-render with new offset
+                    else:
+                        break # Exit the loop if not re-rendering
                 else:
                     break
         elif choice == "5":
@@ -524,9 +504,8 @@ def user_menu():
 
 def main_menu():
     global BASE_URL
-    ip_address = input("Enter the server IP address (leave empty for localhost): ")
-    if not ip_address:
-        ip_address = "localhost"
+    ip_address = os.getenv('SERVER_IP', 'localhost')
+    print(f"Using server IP from .env: {ip_address}")
     BASE_URL = f"http://{ip_address}:3000/api"
 
     auth_menu()
