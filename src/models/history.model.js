@@ -30,11 +30,6 @@ exports.getHistoryEntry = (id, userId, callback) => {
     });
 };
 
-exports.deleteHistoryEntry = (id, callback) => {
-    const sql = "DELETE FROM history WHERE id = $1";
-    db.query(sql, [id], callback);
-};
-
 exports.countHistoryByFractalId = (fractalId, callback) => {
     const sql = "SELECT COUNT(*) as count FROM history WHERE fractal_id = $1";
         callback(null, parseInt(result.rows[0].count));

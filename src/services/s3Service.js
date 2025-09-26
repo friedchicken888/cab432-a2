@@ -23,13 +23,10 @@ const s3Service = {
     try {
       // Check if bucket exists
       await s3Client.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }));
-      console.log(`S3 Bucket '${BUCKET_NAME}' already exists.`);
     } catch (error) {
       if (error.name === 'NotFound' || error.name === 'NoSuchBucket') {
-        console.log(`S3 Bucket '${BUCKET_NAME}' not found. Attempting to create it.`);
         try {
           await s3Client.send(new CreateBucketCommand({ Bucket: BUCKET_NAME }));
-          console.log(`S3 Bucket '${BUCKET_NAME}' created successfully.`);
         } catch (createError) {
           console.error(`Error creating S3 Bucket '${BUCKET_NAME}':`, createError);
           throw new Error(`Failed to create S3 Bucket '${BUCKET_NAME}'.`);
@@ -52,7 +49,6 @@ const s3Service = {
             ],
           },
         }));
-        console.log(`S3 Bucket '${BUCKET_NAME}' tagged successfully.`);
       } catch (tagError) {
         console.error(`Error tagging S3 Bucket '${BUCKET_NAME}':`, tagError);
         // Don't throw error here, as bucket might still be usable without tags
@@ -79,12 +75,10 @@ const s3Service = {
       ACL: 'private', // Ensure private access, only accessible via pre-signed URLs
     };
 
-    try {
-      const command = new PutObjectCommand(params);
-      await s3Client.send(command);
-      console.log(`File uploaded successfully: ${key}`);
-      return key;
-    } catch (error) {
+          try {
+          const command = new PutObjectCommand(params);
+          await s3Client.send(command);
+          return key;    } catch (error) {
       console.error('Error uploading file to S3:', error);
       throw new Error('Failed to upload file to S3.');
     }
@@ -123,7 +117,6 @@ const s3Service = {
     try {
       const command = new DeleteObjectCommand(params);
       await s3Client.send(command);
-      console.log(`File deleted successfully: ${key}`);
     } catch (error) {
       console.error('Error deleting file from S3:', error);
       throw new Error('Failed to delete file from S3.');
