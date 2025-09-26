@@ -1,16 +1,16 @@
 import os
 import requests
 import json
-import jwt # Python JWT library
+import jwt
 from dotenv import load_dotenv
 import os
 
 BASE_URL = ""
 
-load_dotenv() # Load environment variables from .env file
+load_dotenv()
 
-current_user_info = None # Stores decoded JWT payload
-current_token = None # Stores the raw ID Token
+current_user_info = None
+current_token = None
 
 def login(username, password):
     global current_token, current_user_info
@@ -20,8 +20,6 @@ def login(username, password):
         data = r.json()
         current_token = data['idToken']
         
-        # Decode the ID token to get user info and role
-        # Note: This is client-side decoding for display/routing. Server-side verification is authoritative.
         decoded_token = jwt.decode(current_token, options={"verify_signature": False}) 
         current_user_info = decoded_token
         
@@ -78,7 +76,7 @@ def generate_fractal():
     scale = input("Scale (default 1): ")
     offset_x = input("Offset X (default 0): ")
     offset_y = input("Offset Y (default 0): ")
-    color_scheme = input("Color Scheme (rainbow, grayscale, fire, hsl - default rainbow): ")
+    colour_scheme = input("Colour Scheme (rainbow, grayscale, fire, hsl - default rainbow): ")
 
     params = {}
     if width: params["width"] = int(width)
@@ -90,7 +88,7 @@ def generate_fractal():
     if scale: params["scale"] = float(scale)
     if offset_x: params["offsetX"] = float(offset_x)
     if offset_y: params["offsetY"] = float(offset_y)
-    if color_scheme: params["color"] = color_scheme
+    if colour_scheme: params["color"] = colour_scheme
 
     headers = {"Authorization": f"Bearer {current_token}"}
     try:
@@ -119,7 +117,7 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
     endpoint = ""
     title = ""
     
-    user_role = current_user_info.get('custom:role', 'user') # Default to 'user' if custom:role is not present
+    user_role = current_user_info.get('custom:role', 'user')
 
     if view_type == "my_gallery":
         endpoint = "/gallery"
@@ -139,10 +137,9 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
     if prompt_for_options:
         print("\n--- Filters, Sorting, and Pagination Options (leave blank for default/skip) ---")
         
-        # Filters
         filters = {}
-        colorScheme = input("Color Scheme: ")
-        if colorScheme: filters["colorScheme"] = colorScheme
+        colourScheme = input("Colour Scheme: ")
+        if colourScheme: filters["colourScheme"] = colourScheme
         power = input("Power: ")
         if power: filters["power"] = float(power)
         iterations = input("Max Iterations: ")
@@ -219,10 +216,10 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
                     scale = entry.get('scale', 'N/A')
                     offset_x = entry.get('offsetX', 'N/A')
                     offset_y = entry.get('offsetY', 'N/A')
-                    color_scheme = entry.get('colorScheme', 'N/A')
+                    colour_scheme = entry.get('colourScheme', 'N/A')
 
                     print(f"ID: {entry.get('id')}, Hash: {display_hash}{user_info}, Time: {entry.get(timestamp_field)}")
-                    print(f"  Params: W:{width}, H:{height}, Iter:{iterations}, Power:{power}, C:{c_real}+{c_imag}i, Scale:{scale}, Offset:{offset_x},{offset_y}, Color:{color_scheme}\n")
+                    print(f"  Params: W:{width}, H:{height}, Iter:{iterations}, Power:{power}, C:{c_real}+{c_imag}i, Scale:{scale}, Offset:{offset_x},{offset_y}, Colour:{colour_scheme}\n")
             
             # New interactive section
             while True:
@@ -241,7 +238,7 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
                 action = input(prompt_text).strip()
                 
                 if not action:
-                    break # Exit this inner loop to continue with main menu
+                    break
                 
                 if action == '1': # Previous Page
                     if can_go_back:
@@ -285,7 +282,7 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
             print(f"HTTP Status Code: {e.response.status_code}")
             print(f"Response Body: {e.response.text}")
         input("Press Enter to continue...")
-        return # Exit view_data after error
+        return
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -366,7 +363,7 @@ def user_menu():
             username = current_user_info.get('cognito:username', 'Unknown')
             print(f"Logged in as: {username} (Role: {user_role})")
         else:
-            print("Not logged in.") # Should not happen if user_menu is called after successful login
+            print("Not logged in.")
 
         print("1. Generate Fractal")
         print("2. View My Gallery")
@@ -407,13 +404,13 @@ def user_menu():
                     filters = result['filters']
                     sortBy = result['sortBy']
                     sortOrder = result['sortOrder']
-                    prompt_for_options_my_gallery = False # Only prompt for options once
+                    prompt_for_options_my_gallery = False
                     
                     if result.get('re_render'):
-                        offset = result['offset'] # Update offset for the next iteration
-                        continue # Continue the loop to re-render with new offset
+                        offset = result['offset']
+                        continue
                     else:
-                        break # Exit the loop if not re-rendering
+                        break
                 else:
                     break
         
@@ -444,10 +441,10 @@ def user_menu():
                     prompt_for_options_all_history = False
                     
                     if result.get('re_render'):
-                        offset = result['offset'] # Update offset for the next iteration
-                        continue # Continue the loop to re-render with new offset
+                        offset = result['offset']
+                        continue
                     else:
-                        break # Exit the loop if not re-rendering
+                        break
                 else:
                     break
         elif choice == "4":
@@ -477,10 +474,10 @@ def user_menu():
                     prompt_for_options_all_gallery = False
                     
                     if result.get('re_render'):
-                        offset = result['offset'] # Update offset for the next iteration
-                        continue # Continue the loop to re-render with new offset
+                        offset = result['offset']
+                        continue
                     else:
-                        break # Exit the loop if not re-rendering
+                        break
                 else:
                     break
         elif choice == "5":
@@ -488,16 +485,16 @@ def user_menu():
             delete_gallery_entry()
             input("\nPress Enter to continue...")
             
-        elif choice == "6": # Logout
+        elif choice == "6":
             current_user_info = None
             current_token = None
             print("\nLogged out successfully.")
             input("Press Enter to continue...")
-            break # Exit user_menu to return to auth_menu
-        elif choice == "7": # Exit
+            break
+        elif choice == "7":
             clear_terminal()
             print("\nExiting CLI. Goodbye!")
-            exit() # Terminate the program
+            exit()
         else:
             print("\nInvalid choice. Please try again.")
             input("Press Enter to continue...")

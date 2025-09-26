@@ -4,11 +4,10 @@ exports.addToGallery = (userId, fractalId, fractalHash, callback) => {
     const insertSql = "INSERT INTO gallery (user_id, fractal_id, fractal_hash) VALUES ($1, $2, $3) ON CONFLICT (user_id, fractal_hash) DO NOTHING";
     db.query(insertSql, [userId, fractalId, fractalHash], (err) => {
         if (err) return callback(err);
-        // After attempting insert, retrieve the gallery ID for the given user and fractal hash
         const selectSql = "SELECT id FROM gallery WHERE user_id = $1 AND fractal_hash = $2";
         db.query(selectSql, [userId, fractalHash], (err, result) => {
             if (err) return callback(err);
-            callback(null, result.rows[0].id); // Return the gallery ID
+            callback(null, result.rows[0].id);
         });
     });
 };
@@ -18,9 +17,9 @@ exports.getGalleryForUser = (userId, filters, sortBy, sortOrder, limit, offset, 
     let params = [userId];
     let paramIndex = 2;
 
-    if (filters.colorScheme) {
-        whereClauses.push(`f."colorScheme" = $${paramIndex++}`);
-        params.push(filters.colorScheme);
+    if (filters.colourScheme) {
+        whereClauses.push(`f."colourScheme" = $${paramIndex++}`);
+        params.push(filters.colourScheme);
     }
     if (filters.power) {
         whereClauses.push(`f.power = $${paramIndex++}`);
@@ -41,7 +40,7 @@ exports.getGalleryForUser = (userId, filters, sortBy, sortOrder, limit, offset, 
 
     const whereSql = whereClauses.length > 0 ? `WHERE ` + whereClauses.join(` AND `) : ``;
 
-    const validSortColumns = ['id', 'hash', 'width', 'height', 'iterations', 'power', 'c_real', 'c_imag', 'scale', 'offsetX', 'offsetY', 'colorScheme', 'added_at'];
+    const validSortColumns = ['id', 'hash', 'width', 'height', 'iterations', 'power', 'c_real', 'c_imag', 'scale', 'offsetX', 'offsetY', 'colourScheme', 'added_at'];
     const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'added_at';
     const order = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
 
@@ -51,7 +50,7 @@ exports.getGalleryForUser = (userId, filters, sortBy, sortOrder, limit, offset, 
         const totalCount = parseInt(countResult.rows[0].totalCount);
 
         const dataSql = `
-            SELECT g.id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", g.added_at, g.fractal_hash, f.s3_key
+            SELECT g.id, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colourScheme", g.added_at, g.fractal_hash, f.s3_key
             FROM gallery g
             JOIN fractals f ON g.fractal_id = f.id
             ${whereSql}
@@ -115,9 +114,9 @@ exports.getAllGallery = (filters, sortBy, sortOrder, limit, offset, callback) =>
     let params = [];
     let paramIndex = 1;
 
-    if (filters.colorScheme) {
-        whereClauses.push(`f."colorScheme" = $${paramIndex++}`);
-        params.push(filters.colorScheme);
+    if (filters.colourScheme) {
+        whereClauses.push(`f."colourScheme" = $${paramIndex++}`);
+        params.push(filters.colourScheme);
     }
     if (filters.power) {
         whereClauses.push(`f.power = $${paramIndex++}`);
@@ -138,7 +137,7 @@ exports.getAllGallery = (filters, sortBy, sortOrder, limit, offset, callback) =>
 
     const whereSql = whereClauses.length > 0 ? `WHERE ` + whereClauses.join(` AND `) : ``;
 
-    const validSortColumns = ['id', 'user_id', 'hash', 'width', 'height', 'iterations', 'power', 'c_real', 'c_imag', 'scale', 'offsetX', 'offsetY', 'colorScheme', 'added_at'];
+    const validSortColumns = ['id', 'user_id', 'hash', 'width', 'height', 'iterations', 'power', 'c_real', 'c_imag', 'scale', 'offsetX', 'offsetY', 'colourScheme', 'added_at'];
     const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'added_at';
     const order = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
 
@@ -148,7 +147,7 @@ exports.getAllGallery = (filters, sortBy, sortOrder, limit, offset, callback) =>
         const totalCount = parseInt(countResult.rows[0].totalCount);
 
         const dataSql = `
-            SELECT g.id, g.user_id, (SELECT DISTINCT h_sub.username FROM history h_sub WHERE h_sub.user_id = g.user_id LIMIT 1) AS username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", g.added_at, g.fractal_hash, f.s3_key
+            SELECT g.id, g.user_id, (SELECT DISTINCT h_sub.username FROM history h_sub WHERE h_sub.user_id = g.user_id LIMIT 1) AS username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colourScheme", g.added_at, g.fractal_hash, f.s3_key
             FROM gallery g
             JOIN fractals f ON g.fractal_id = f.id
             ${whereSql}

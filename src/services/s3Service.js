@@ -51,7 +51,6 @@ const s3Service = {
         }));
       } catch (tagError) {
         console.error(`Error tagging S3 Bucket '${BUCKET_NAME}':`, tagError);
-        // Don't throw error here, as bucket might still be usable without tags
       }
     } else {
       console.warn('S3_TAG_QUT_USERNAME or S3_TAG_PURPOSE not defined. S3 bucket will not be tagged programmatically.');
@@ -66,13 +65,13 @@ const s3Service = {
    * @returns {Promise<string>} The S3 object key of the uploaded file.
    */
   async uploadFile(fileBuffer, contentType, folder = 'fractals') {
-    const key = `${folder}/${uuidv4()}.png`; // Assuming PNG for fractals
+    const key = `${folder}/${uuidv4()}.png`;
     const params = {
       Bucket: BUCKET_NAME,
       Key: key,
       Body: fileBuffer,
       ContentType: contentType,
-      ACL: 'private', // Ensure private access, only accessible via pre-signed URLs
+      ACL: 'private',
     };
 
           try {
@@ -90,7 +89,7 @@ const s3Service = {
    * @param {number} expiresSeconds - The expiration time in seconds for the URL.
    * @returns {Promise<string>} The pre-signed URL.
    */
-  async getPresignedUrl(key, expiresSeconds = 300) { // Default 5 minutes
+  async getPresignedUrl(key, expiresSeconds = 300) {
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,

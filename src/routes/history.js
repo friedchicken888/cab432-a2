@@ -7,14 +7,14 @@ const Gallery = require('../models/gallery.model.js');
 const s3Service = require('../services/s3Service');
 
 router.get('/gallery', verifyToken, async (req, res) => {
-    let limit = parseInt(req.query.limit) || 5; // Default limit to 5
+    let limit = parseInt(req.query.limit) || 5;
     if (req.user.role !== 'admin') {
         limit = Math.min(limit, 5);
     }
-    const offset = parseInt(req.query.offset) || 0; // Default offset to 0
+    const offset = parseInt(req.query.offset) || 0;
 
     const filters = {
-        colorScheme: req.query.colorScheme,
+        colourScheme: req.query.colourScheme,
         power: parseFloat(req.query.power),
         iterations: parseInt(req.query.iterations),
         width: parseInt(req.query.width),
@@ -43,7 +43,7 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
 
     Gallery.getGalleryEntry(galleryId, userId, isAdmin, (err, row) => {
         if (err) {
-            console.error(`DEBUG: Error getting gallery entry for galleryId ${galleryId}:`, err);
+            console.error(`Error getting gallery entry for galleryId ${galleryId}:`, err);
             return res.status(500).send("Database error");
         }
         if (!row) {
@@ -59,20 +59,20 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
 
         Gallery.deleteGalleryEntry(galleryId, userId, isAdmin, function (err) {
             if (err) {
-                console.error(`DEBUG: Error deleting gallery entry ${galleryId} from DB:`, err);
+                console.error(`Error deleting gallery entry ${galleryId} from DB:`, err);
                 return res.status(500).send("Database error");
             }
 
             Gallery.countGalleryByFractalHash(fractalHash, (err, countRow) => {
                 if (err) {
-                    console.error(`DEBUG: Error checking for other fractal galleries for hash ${fractalHash}:`, err);
+                    console.error(`Error checking for other fractal galleries for hash ${fractalHash}:`, err);
                     return res.status(500).send("Database error during fractal count check.");
                 }
 
                 if (parseInt(countRow.count) === 0) {
                     Fractal.getFractalS3Key(fractalId, (err, fractalRow) => {
                         if (err) {
-                            console.error(`DEBUG: Error getting S3 key for fractalId ${fractalId}:`, err);
+                            console.error(`Error getting S3 key for fractalId ${fractalId}:`, err);
                             return res.status(500).send("Database error during S3 key retrieval.");
                         }
                         if (fractalRow && fractalRow.s3_key) {
@@ -80,7 +80,7 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
                             s3Service.deleteFile(s3KeyToDelete).then(() => {
                                 Fractal.deleteFractal(fractalId, (deleteFractalErr) => {
                                     if (deleteFractalErr) {
-                                        console.error(`DEBUG: Error deleting fractal record for ID ${fractalId}:`, deleteFractalErr);
+                                        console.error(`Error deleting fractal record for ID ${fractalId}:`, deleteFractalErr);
                                         return res.status(500).send("Database error during fractal record deletion.");
                                     } else {
                                         res.send({ message: "Gallery entry and associated fractal deleted successfully" });
@@ -88,10 +88,9 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
                                 });
                             });
                         } else {
-                            // If no image path found, still delete fractal record if it exists
                             Fractal.deleteFractal(fractalId, (deleteFractalErr) => {
                                 if (deleteFractalErr) {
-                                    console.error(`DEBUG: Error deleting fractal record when image path not found for ID ${fractalId}:`, deleteFractalErr);
+                                    console.error(`Error deleting fractal record when image path not found for ID ${fractalId}:`, deleteFractalErr);
                                     return res.status(500).send("Database error during fractal record deletion.");
                                 } else {
                                     res.send({ message: "Gallery entry and associated fractal deleted successfully" });
@@ -119,7 +118,7 @@ router.get('/admin/history', verifyToken, async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
 
     const filters = {
-        colorScheme: req.query.colorScheme,
+        colourScheme: req.query.colourScheme,
         power: parseFloat(req.query.power),
         iterations: parseInt(req.query.iterations),
         width: parseInt(req.query.width),
@@ -153,7 +152,7 @@ router.get('/admin/gallery', verifyToken, async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
 
     const filters = {
-        colorScheme: req.query.colorScheme,
+        colourScheme: req.query.colourScheme,
         power: parseFloat(req.query.power),
         iterations: parseInt(req.query.iterations),
         width: parseInt(req.query.width),

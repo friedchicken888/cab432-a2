@@ -1,9 +1,3 @@
-/**
- * @file server.js
- * @description Main entry point for the Fractal Generator Express API.
- * Initializes the Express application, configures middleware,
- * sets up routes, and starts the server.
- */
 require('dotenv').config();
 const express = require('express');
 const authRouter = require('./src/routes/auth').router;
@@ -29,7 +23,7 @@ app.use('/api', historyRouter);
       console.log(`Server running on port ${port}`);
     });
   } catch (error) {
-    console.error('Failed to initialize S3 bucket:', error);
-    process.exit(1); // Exit if S3 initialization fails
+    console.error('Failed to initialise S3 bucket:', error);
+    process.exit(1);
   }
 })();

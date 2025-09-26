@@ -23,7 +23,8 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^2.7.0",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "@aws-sdk/client-secrets-manager": "^3.896.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

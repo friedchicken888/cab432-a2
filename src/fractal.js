@@ -1,11 +1,9 @@
 const { createCanvas } = require('canvas');
 
-// Map value ranges
 function map(value, start1, stop1, start2, stop2) {
     return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
 }
 
-// HSL to RGB
 function hslToRgb(h, s, l) {
     h /= 360; s /= 100; l /= 100;
     let r, g, b;
@@ -29,12 +27,11 @@ function hslToRgb(h, s, l) {
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), 255];
 }
 
-// Color function with smoother mapping
-function getColor(n, max, scheme) {
-    if (n >= max) return [0, 0, 0, 255]; // inside set = black
+function getColour(n, max, scheme) {
+    if (n >= max) return [0, 0, 0, 255];
     const t = Math.sqrt(n / max);
     switch (scheme) {
-        case "grayscale":
+        case "greyscale":
             const gray = Math.floor(t * 255);
             return [gray, gray, gray, 255];
         case "rainbow":
@@ -49,7 +46,6 @@ function getColor(n, max, scheme) {
     }
 }
 
-// Iteration function: z -> z^p + c
 function iterate(z, c, power) {
     const r = Math.sqrt(z.real * z.real + z.imag * z.imag);
     const theta = Math.atan2(z.imag, z.real);
@@ -60,7 +56,6 @@ function iterate(z, c, power) {
     };
 }
 
-// Main generator with smooth coloring and optional debug callback
 async function generateFractal({
     width = 800,
     height = 600,
@@ -70,8 +65,8 @@ async function generateFractal({
     scale = 1.5,
     offsetX = 0,
     offsetY = 0,
-    colorScheme = "rainbow",
-    maxTime = 120000, // max time in ms (2 minutes)
+    colourScheme = "rainbow",
+    maxTime = 120000,
     debugLog = null
 }) {
     const canvas = createCanvas(width, height);
@@ -84,7 +79,6 @@ async function generateFractal({
     for (let x = 0; x < width; x++) {
         for (let y = 0; y < height; y++) {
 
-            // Check time limit
             if (Date.now() - startTime > maxTime) {
                 if (debugLog) debugLog('Time limit reached, aborting fractal generation.');
                 return null;
@@ -102,26 +96,23 @@ async function generateFractal({
                 n++;
             }
 
-            // Smooth iteration count
             let mu = n;
             if (n < maxIterations) {
                 mu = n + 1 - Math.log(Math.log(Math.sqrt(z.real * z.real + z.imag * z.imag))) / Math.log(power);
             }
 
-            const color = getColor(mu, maxIterations, colorScheme);
+            const colour = getColour(mu, maxIterations, colourScheme);
             const idx = (y * width + x) * 4;
-            data[idx] = color[0];
-            data[idx + 1] = color[1];
-            data[idx + 2] = color[2];
-            data[idx + 3] = color[3];
+            data[idx] = colour[0];
+            data[idx + 1] = colour[1];
+            data[idx + 2] = colour[2];
+            data[idx + 3] = colour[3];
         }
 
-        // Debug progress per column
         if (debugLog && x % 100 === 0) {
             debugLog(`Progress: x=${x}/${width}`);
         }
 
-        // Yield to event loop to handle async tasks
         await new Promise(resolve => setImmediate(resolve));
     }
 

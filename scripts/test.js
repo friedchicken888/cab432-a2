@@ -10,7 +10,7 @@ const options = {
     scale: 1,
     offsetX: 0,
     offsetY: 0,
-    colorScheme: 'rainbow'
+    colourScheme: 'rainbow'
 };
 
 console.log('Starting fractal generation with options:', options);

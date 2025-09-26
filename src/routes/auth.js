@@ -12,21 +12,18 @@ const CLIENT_SECRET = process.env.AWS_COGNITO_CLIENT_SECRET;
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
 
-// Helper function to calculate SecretHash
 function secretHash(clientId, clientSecret, username) {
     const hasher = crypto.createHmac('sha256', clientSecret);
     hasher.update(`${username}${clientId}`);
     return hasher.digest('base64');
 }
 
-// Cognito ID Token Verifier
 const idVerifier = CognitoJwtVerifier.create({
     userPoolId: USER_POOL_ID,
     tokenUse: "id",
     clientId: CLIENT_ID,
 });
 
-// Middleware to verify Cognito ID Token
 async function verifyToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -37,9 +34,8 @@ async function verifyToken(req, res, next) {
 
     try {
         const payload = await idVerifier.verify(token);
-        // Attach user info from Cognito ID token payload
         req.user = {
-            id: payload.sub, // Cognito User ID
+            id: payload.sub,
             username: payload['cognito:username'],
             email: payload.email,
             role: (payload['cognito:groups'] && payload['cognito:groups'].includes('admin')) ? 'admin' : 'user'
@@ -50,7 +46,6 @@ async function verifyToken(req, res, next) {
     }
 }
 
-// Cognito Signup Route
 router.post('/signup', async (req, res) => {
     const { username, email, password } = req.body;
 
@@ -77,7 +72,6 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-// Cognito Confirm Signup Route
 router.post('/confirm', async (req, res) => {
     const { username, confirmationCode } = req.body;
 
@@ -101,7 +95,6 @@ router.post('/confirm', async (req, res) => {
     }
 });
 
-// Cognito Login Route
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 

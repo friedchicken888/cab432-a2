@@ -1,22 +1,31 @@
 const { Pool } = require('pg');
+const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 
-const pool = new Pool({
-    host: process.env.PGHOST || 'database-1-instance-1.ce2haupt2cta.ap-southeast-2.rds.amazonaws.com',
-    user: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE || 'cohort_2025',
-    port: process.env.PGPORT || 5432,
-    ssl: {
-        rejectUnauthorized: false // Required for sslmode=require
+const secret_name = "n11051337-A2-DB";
+const region = "ap-southeast-2";
+
+const client = new SecretsManagerClient({ region: region });
+
+let dbSecrets = {};
+
+async function getDbSecrets() {
+    try {
+        const response = await client.send(
+            new GetSecretValueCommand({
+                SecretId: secret_name
+            })
+        );
+        if (response.SecretString) {
+            dbSecrets = JSON.parse(response.SecretString);
+            console.log("Successfully retrieved database secrets from AWS Secrets Manager.");
+        }
+    } catch (error) {
+        console.error("Error retrieving database secrets:", error);
+        process.exit(1);
     }
-});
+}
 
-pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-    process.exit(-1);
-});
-
-async function initializeDatabase() {
+async function initialiseDatabase() {
     try {
         const client = await pool.connect();
         console.log('Connected to PostgreSQL database.');
@@ -34,7 +43,7 @@ async function initializeDatabase() {
             scale REAL NOT NULL,
             "offsetX" REAL NOT NULL,
             "offsetY" REAL NOT NULL,
-            "colorScheme" TEXT NOT NULL,
+            "colourScheme" TEXT NOT NULL,
             s3_key TEXT UNIQUE NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )`;
@@ -43,7 +52,7 @@ async function initializeDatabase() {
         CREATE TABLE IF NOT EXISTS history (
             id SERIAL PRIMARY KEY,
             user_id TEXT NOT NULL,
-            username TEXT NOT NULL, /* Added username column */
+            username TEXT NOT NULL,
             fractal_id INTEGER,
             generated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE SET NULL
@@ -60,27 +69,58 @@ async function initializeDatabase() {
             FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE CASCADE
         )`;
 
-        await client.query(fractalsTable);
-        console.log("Fractals table created or already exists.");
-        await client.query(historyTable);
-        console.log("History table created or already exists.");
-        await client.query(galleryTable);
-        console.log("Gallery table created or already exists.");
+        console.log("Database initialised.");
 
         client.release();
     } catch (err) {
-        console.error('Error initializing database:', err.message);
+        console.error('Error initialising database:', err.message);
         process.exit(-1);
     }
 }
 
-initializeDatabase();
+
+
+let pool;
+let initialised;
+
+async function initDbAndPool() {
+    await getDbSecrets();
+
+    pool = new Pool({
+        host: dbSecrets.host,
+        user: dbSecrets.username,
+        password: dbSecrets.password,
+        database: dbSecrets.dbname,
+        port: dbSecrets.port,
+        ssl: {
+            rejectUnauthorized: false
+        }
+    });
+
+    pool.on('error', (err) => {
+        console.error('Unexpected error on idle client', err);
+        process.exit(-1);
+    });
+
+    await initialiseDatabase();
+
+    if (initialised) initialised.resolve();
+}
+
+initialised = new Promise(resolve => {
+    initialised.resolve = resolve;
+});
+
+initDbAndPool();
 
 module.exports = {
-    query: (text, params, callback) => {
+    query: async (text, params, callback) => {
+        await initialised;
         return pool.query(text, params, callback);
     },
-    getClient: () => {
+    getClient: async () => {
+        await initialised;
         return pool.connect();
-    }
+    },
+    initialised: initialised
 };

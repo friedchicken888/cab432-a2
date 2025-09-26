@@ -12,10 +12,9 @@ USERS = {
     "admin": {"username": "admin", "password": "Testtest123!"}
 }
 
-COLOUR_SCHEMES = ["rainbow", "grayscale", "fire", "hsl"]
+COLOUR_SCHEMES = ["rainbow", "greyscale", "fire", "hsl"]
 
 def login(username, password):
-    """Logs in to the API and returns the JWT token."""
     print(f"\nLogging in as {username}...")
     try:
         resp = requests.post(LOGIN_URL, json={"username": username, "password": password})
@@ -35,7 +34,6 @@ def login(username, password):
         return None
 
 def run_load_test(duration_seconds):
-    """Runs the load test for a given duration."""
     start_time = time.time()
     request_count = 0
 
@@ -60,7 +58,7 @@ def run_load_test(duration_seconds):
             "scale": round(random.uniform(0.5, 1.5), 3),
             "offsetX": round(random.uniform(-1, 1), 3),
             "offsetY": round(random.uniform(-1, 1), 3),
-            "color": random.choice(COLOUR_SCHEMES),
+            "colour": random.choice(COLOUR_SCHEMES),
             "real": round(random.uniform(-2, 2), 3),
             "imag": round(random.uniform(-2, 2), 3)
         }

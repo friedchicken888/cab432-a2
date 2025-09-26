@@ -8,7 +8,6 @@ const History = require('../models/history.model.js');
 const Gallery = require('../models/gallery.model.js');
 const s3Service = require('../services/s3Service');
 
-// Track if a fractal is currently being generated
 let isGenerating = false;
 
 router.get('/fractal', verifyToken, async (req, res) => {
@@ -28,7 +27,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
         scale: parseFloat(req.query.scale) || 1,
         offsetX: parseFloat(req.query.offsetX) || 0,
         offsetY: parseFloat(req.query.offsetY) || 0,
-        colorScheme: req.query.color || 'rainbow',
+        colourScheme: req.query.color || 'rainbow',
     };
 
     const hash = crypto.createHash('sha256').update(JSON.stringify(options)).digest('hex');
@@ -39,7 +38,6 @@ router.get('/fractal', verifyToken, async (req, res) => {
         }
 
         if (row) {
-            // Fractal exists, log to history and add to gallery (if not already there)
             History.createHistoryEntry(req.user.id, req.user.username, row.id, (err) => {
                 if (err) {
                     console.error("Failed to log history", err);
@@ -70,7 +68,6 @@ router.get('/fractal', verifyToken, async (req, res) => {
                 }
             });
         } else {
-            // Fractal does not exist, generate it
             isGenerating = true;
             let buffer;
             try {
