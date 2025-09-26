@@ -17,7 +17,7 @@ async function getDbSecrets() {
         );
         if (response.SecretString) {
             dbSecrets = JSON.parse(response.SecretString);
-            console.log("Successfully retrieved database secrets from AWS Secrets Manager.");
+            console.log("Successfully retrieved database secrets from AWS Secrets Manager. Keys retrieved: ", Object.keys(dbSecrets));
         }
     } catch (error) {
         console.error("Error retrieving database secrets:", error);
