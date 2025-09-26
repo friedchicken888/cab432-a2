@@ -41,6 +41,10 @@ exports.getGalleryForUser = (userId, filters, sortBy, sortOrder, limit, offset, 
 
     const whereSql = whereClauses.length > 0 ? `WHERE ` + whereClauses.join(` AND `) : ``;
 
+    const validSortColumns = ['id', 'hash', 'width', 'height', 'iterations', 'power', 'c_real', 'c_imag', 'scale', 'offsetX', 'offsetY', 'colorScheme', 'added_at'];
+    const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'added_at';
+    const order = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
+
     const countSql = `SELECT COUNT(*) as "totalCount" FROM gallery g JOIN fractals f ON g.fractal_id = f.id ${whereSql}`;
     db.query(countSql, params, (err, countResult) => {
         if (err) return callback(err);
