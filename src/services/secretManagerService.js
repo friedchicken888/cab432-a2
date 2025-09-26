@@ -7,6 +7,10 @@ let jwtSecret = null;
 let jwtSecretInitialised = false;
 let _resolveJwtSecretInitialised;
 
+let cognitoSecrets = null;
+let cognitoSecretsInitialised = false;
+let _resolveCognitoSecretsInitialised;
+
 async function getJwtSecret() {
     if (jwtSecretInitialised) {
         return jwtSecret;
@@ -33,17 +37,53 @@ async function getJwtSecret() {
     }
 }
 
-const initialised = new Promise(resolve => {
+async function getCognitoSecrets() {
+    if (cognitoSecretsInitialised) {
+        return cognitoSecrets;
+    }
+
+    try {
+        const secret_name = "n11051337-A2-Cognito";
+        const response = await client.send(
+            new GetSecretValueCommand({
+                SecretId: secret_name
+            })
+        );
+
+        if (response.SecretString) {
+            cognitoSecrets = JSON.parse(response.SecretString);
+            cognitoSecretsInitialised = true;
+            if (_resolveCognitoSecretsInitialised) _resolveCognitoSecretsInitialised();
+            return cognitoSecrets;
+        }
+    } catch (error) {
+        console.error("Error retrieving Cognito secrets from AWS Secrets Manager:", error);
+        process.exit(1);
+    }
+}
+
+const initialisedJwt = new Promise(resolve => {
     _resolveJwtSecretInitialised = resolve;
 });
 
+const initialisedCognito = new Promise(resolve => {
+    _resolveCognitoSecretsInitialised = resolve;
+});
+
 getJwtSecret();
+getCognitoSecrets();
 
 module.exports = {
     getJwtSecret: async () => {
         if (!jwtSecretInitialised) {
-            await initialised;
+            await initialisedJwt;
         }
         return jwtSecret;
+    },
+    getCognitoSecrets: async () => {
+        if (!cognitoSecretsInitialised) {
+            await initialisedCognito;
+        }
+        return cognitoSecrets;
     }
 };

@@ -7,17 +7,34 @@ const secretManagerService = require('../services/secretManagerService');
 const router = express.Router();
 
 let jwtSecret;
+let USER_POOL_ID;
+let CLIENT_ID;
+let CLIENT_SECRET;
+let cognitoClient;
+let idVerifier;
+
+const POOL_REGION = process.env.AWS_COGNITO_POOL_REGION;
+
+let _resolveAuthInitialised;
+const initialised = new Promise(resolve => {
+    _resolveAuthInitialised = resolve;
+});
 
 (async () => {
     jwtSecret = await secretManagerService.getJwtSecret();
+    const cognitoSecrets = await secretManagerService.getCognitoSecrets();
+    USER_POOL_ID = cognitoSecrets.USER_POOL_ID;
+    CLIENT_ID = cognitoSecrets.CLIENT_ID;
+    CLIENT_SECRET = cognitoSecrets.CLIENT_SECRET;
+
+    cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
+    idVerifier = CognitoJwtVerifier.create({
+        userPoolId: USER_POOL_ID,
+        tokenUse: "id",
+        clientId: CLIENT_ID,
+    });
+    _resolveAuthInitialised();
 })();
-
-const POOL_REGION = process.env.AWS_COGNITO_POOL_REGION;
-const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
-const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
-const CLIENT_SECRET = process.env.AWS_COGNITO_CLIENT_SECRET;
-
-const cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
 
 function secretHash(clientId, clientSecret, username) {
     const hasher = crypto.createHmac('sha256', clientSecret);
@@ -25,13 +42,8 @@ function secretHash(clientId, clientSecret, username) {
     return hasher.digest('base64');
 }
 
-const idVerifier = CognitoJwtVerifier.create({
-    userPoolId: USER_POOL_ID,
-    tokenUse: "id",
-    clientId: CLIENT_ID,
-});
-
 async function verifyToken(req, res, next) {
+    await initialised;
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -54,6 +66,7 @@ async function verifyToken(req, res, next) {
 }
 
 router.post('/signup', async (req, res) => {
+    await initialised;
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
@@ -80,6 +93,7 @@ router.post('/signup', async (req, res) => {
 });
 
 router.post('/confirm', async (req, res) => {
+    await initialised;
     const { username, confirmationCode } = req.body;
 
     if (!username || !confirmationCode) {
@@ -103,6 +117,7 @@ router.post('/confirm', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
+    await initialised;
     const { username, password } = req.body;
 
     if (!username || !password) {
