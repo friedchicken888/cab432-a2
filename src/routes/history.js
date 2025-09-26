@@ -6,7 +6,7 @@ const Fractal = require('../models/fractal.model.js');
 const Gallery = require('../models/gallery.model.js');
 const s3Service = require('../services/s3Service');
 
-router.get('/gallery', verifyToken, (req, res) => {
+router.get('/gallery', verifyToken, async (req, res) => {
     let limit = parseInt(req.query.limit) || 5; // Default limit to 5
     if (req.user.role !== 'admin') {
         limit = Math.min(limit, 5);
@@ -116,7 +116,7 @@ router.delete('/gallery/:id', verifyToken, (req, res) => {
     });
 });
 
-router.get('/admin/history', verifyToken, (req, res) => {
+router.get('/admin/history', verifyToken, async (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).send('Access denied. Admin privileges required.');
     }
@@ -150,7 +150,7 @@ router.get('/admin/history', verifyToken, (req, res) => {
     });
 });
 
-router.get('/admin/gallery', verifyToken, (req, res) => {
+router.get('/admin/gallery', verifyToken, async (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).send('Access denied. Admin privileges required.');
     }
