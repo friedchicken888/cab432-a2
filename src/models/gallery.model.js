@@ -148,10 +148,9 @@ exports.getAllGallery = (filters, sortBy, sortOrder, limit, offset, callback) =>
         const totalCount = parseInt(countResult.rows[0].totalCount);
 
         const dataSql = `
-            SELECT g.id, g.user_id, h.username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", g.added_at, g.fractal_hash, f.s3_key
+            SELECT g.id, g.user_id, (SELECT DISTINCT h_sub.username FROM history h_sub WHERE h_sub.user_id = g.user_id LIMIT 1) AS username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", g.added_at, g.fractal_hash, f.s3_key
             FROM gallery g
             JOIN fractals f ON g.fractal_id = f.id
-            LEFT JOIN history h ON g.user_id = h.user_id
             ${whereSql}
             ORDER BY ${sortColumn} ${order}
             LIMIT $${paramIndex++} OFFSET $${paramIndex++}
