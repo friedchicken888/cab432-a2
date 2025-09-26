@@ -10,8 +10,6 @@ let jwtSecret;
 let USER_POOL_ID;
 let CLIENT_ID;
 let CLIENT_SECRET;
-let cognitoClient;
-let idVerifier;
 let _secretHash;
 
 const POOL_REGION = process.env.AWS_COGNITO_POOL_REGION;
@@ -21,6 +19,9 @@ const initialised = new Promise(resolve => {
     _resolveAuthInitialised = resolve;
 });
 
+let _cognitoClient;
+let _idVerifier;
+
 (async () => {
     jwtSecret = await secretManagerService.getJwtSecret();
     const cognitoSecrets = await secretManagerService.getCognitoSecrets();
@@ -28,8 +29,8 @@ const initialised = new Promise(resolve => {
     CLIENT_ID = cognitoSecrets.CLIENT_ID;
     CLIENT_SECRET = cognitoSecrets.CLIENT_SECRET;
 
-    cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
-    idVerifier = CognitoJwtVerifier.create({
+    _cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
+    _idVerifier = CognitoJwtVerifier.create({
         userPoolId: USER_POOL_ID,
         tokenUse: "id",
         clientId: CLIENT_ID,
@@ -53,7 +54,7 @@ async function verifyToken(req, res, next) {
     }
 
     try {
-        const payload = await idVerifier.verify(token);
+        const payload = await _idVerifier.verify(token);
         req.user = {
             id: payload.sub,
             username: payload['cognito:username'],
@@ -86,7 +87,7 @@ router.post('/signup', async (req, res) => {
 
     try {
         const command = new SignUpCommand(params);
-        await cognitoClient.send(command);
+        await _cognitoClient.send(command);
         res.status(200).send('User registered successfully. Please check your email for a confirmation code.');
     } catch (error) {
         res.status(500).send(error.message);
@@ -110,7 +111,7 @@ router.post('/confirm', async (req, res) => {
 
     try {
         const command = new ConfirmSignUpCommand(params);
-        await cognitoClient.send(command);
+        await _cognitoClient.send(command);
         res.status(200).send('User confirmed successfully.');
     } catch (error) {
         res.status(500).send(error.message);
@@ -137,7 +138,7 @@ router.post('/login', async (req, res) => {
 
     try {
         const command = new InitiateAuthCommand(params);
-        const response = await cognitoClient.send(command);
+        await _cognitoClient.send(command);
         res.json({
             idToken: response.AuthenticationResult.IdToken,
             accessToken: response.AuthenticationResult.AccessToken,
