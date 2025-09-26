@@ -32,7 +32,7 @@ exports.getHistoryEntry = (id, userId, callback) => {
 
 exports.countHistoryByFractalId = (fractalId, callback) => {
     const sql = "SELECT COUNT(*) as count FROM history WHERE fractal_id = $1";
-        callback(null, parseInt(result.rows[0].count));
+    callback(null, parseInt(result.rows[0].count));
 };
 
 exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset, callback) => {

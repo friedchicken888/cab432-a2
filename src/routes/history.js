@@ -29,6 +29,9 @@ router.get('/gallery', verifyToken, async (req, res) => {
             return res.status(500).send("Database error");
         }
         const galleryWithUrls = await Promise.all(rows.map(async row => {
+            const fractalUrl = row.s3_key ? await s3Service.getPresignedUrl(row.s3_key) : null;
+            return { ...row, url: fractalUrl };
+        }));
         res.json({ data: galleryWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
     });
 });
