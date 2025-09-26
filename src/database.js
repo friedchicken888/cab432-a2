@@ -44,9 +44,9 @@ async function initializeDatabase() {
             id SERIAL PRIMARY KEY,
             user_id TEXT NOT NULL,
             username TEXT NOT NULL, /* Added username column */
-            fractal_id INTEGER NOT NULL,
+            fractal_id INTEGER,
             generated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE CASCADE
+            FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE SET NULL
         )`;
 
         const galleryTable = `
