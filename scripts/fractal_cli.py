@@ -192,22 +192,27 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
                 timestamp_field = 'added_at' if 'added_at' in entry else 'generated_at'
                 user_info = f", User: {entry.get('username')}" if 'username' in entry else ''
                 
-                fractal_hash = entry.get('hash')
-                display_hash = fractal_hash[:8] + '...' if fractal_hash else 'N/A (Deleted)'
-                
-                width = entry.get('width', 'N/A')
-                height = entry.get('height', 'N/A')
-                iterations = entry.get('iterations', 'N/A')
-                power = entry.get('power', 'N/A')
-                c_real = entry.get('c_real', 'N/A')
-                c_imag = entry.get('c_imag', 'N/A')
-                scale = entry.get('scale', 'N/A')
-                offset_x = entry.get('offsetX', 'N/A')
-                offset_y = entry.get('offsetY', 'N/A')
-                color_scheme = entry.get('colorScheme', 'N/A')
+                fractal_deleted = entry.get('fractal_deleted', False)
 
-                print(f"ID: {entry.get('id')}, Hash: {display_hash}{user_info}, Time: {entry.get(timestamp_field)}")
-                print(f"  Params: W:{width}, H:{height}, Iter:{iterations}, Power:{power}, C:{c_real}+{c_imag}i, Scale:{scale}, Offset:{offset_x},{offset_y}, Color:{color_scheme}\n")
+                if fractal_deleted:
+                    print(f"ID: {entry.get('id')}, Status: Fractal Deleted{user_info}, Time: {entry.get(timestamp_field)}\n")
+                else:
+                    fractal_hash = entry.get('hash')
+                    display_hash = fractal_hash[:8] + '...' if fractal_hash else 'N/A'
+                    
+                    width = entry.get('width', 'N/A')
+                    height = entry.get('height', 'N/A')
+                    iterations = entry.get('iterations', 'N/A')
+                    power = entry.get('power', 'N/A')
+                    c_real = entry.get('c_real', 'N/A')
+                    c_imag = entry.get('c_imag', 'N/A')
+                    scale = entry.get('scale', 'N/A')
+                    offset_x = entry.get('offsetX', 'N/A')
+                    offset_y = entry.get('offsetY', 'N/A')
+                    color_scheme = entry.get('colorScheme', 'N/A')
+
+                    print(f"ID: {entry.get('id')}, Hash: {display_hash}{user_info}, Time: {entry.get(timestamp_field)}")
+                    print(f"  Params: W:{width}, H:{height}, Iter:{iterations}, Power:{power}, C:{c_real}+{c_imag}i, Scale:{scale}, Offset:{offset_x},{offset_y}, Color:{color_scheme}\n")
             
             return {'data': data, 'totalCount': total_count, 'limit': current_limit, 'offset': current_offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder}
         else:

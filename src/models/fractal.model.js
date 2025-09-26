@@ -27,6 +27,9 @@ exports.getFractalS3Key = (id, callback) => {
 };
 
 exports.deleteFractal = (id, callback) => {
-    const sql = "DELETE FROM fractals WHERE id = $1";
-    db.query(sql, [id], callback);
+    db.query("UPDATE history SET fractal_id = NULL WHERE fractal_id = $1", [id], (err) => {
+        if (err) return callback(err);
+        const sql = "DELETE FROM fractals WHERE id = $1";
+        db.query(sql, [id], callback);
+    });
 };

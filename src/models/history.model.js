@@ -2,9 +2,9 @@ const db = require('../database.js');
 
 exports.getHistoryForUser = (userId, callback) => {
     const sql = `
-        SELECT h.id, h.username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", h.generated_at
+        SELECT h.id, h.username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", h.generated_at, (f.id IS NULL) AS fractal_deleted
         FROM history h
-        JOIN fractals f ON h.fractal_id = f.id
+        LEFT JOIN fractals f ON h.fractal_id = f.id
         WHERE h.user_id = $1
         ORDER BY h.generated_at DESC
     `;
@@ -73,7 +73,7 @@ exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset, callback) =>
         const totalCount = parseInt(countResult.rows[0].totalCount);
 
         const dataSql = `
-            SELECT h.id, h.user_id, h.username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", h.generated_at, f.s3_key
+            SELECT h.id, h.user_id, h.username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colorScheme", h.generated_at, f.s3_key, (f.id IS NULL) AS fractal_deleted
             FROM history h
             LEFT JOIN fractals f ON h.fractal_id = f.id
             ${whereSql}
