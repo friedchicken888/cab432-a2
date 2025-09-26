@@ -30,13 +30,52 @@ async function initialiseDatabase() {
         const client = await pool.connect();
         console.log('Connected to PostgreSQL database.');
 
+        const fractalsTable = `
+        CREATE TABLE IF NOT EXISTS fractals (
+            id SERIAL PRIMARY KEY,
+            hash TEXT UNIQUE NOT NULL,
+            width INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            iterations INTEGER NOT NULL,
+            power REAL NOT NULL,
+            c_real REAL NOT NULL,
+            c_imag REAL NOT NULL,
+            scale REAL NOT NULL,
+            "offsetX" REAL NOT NULL,
+            "offsetY" REAL NOT NULL,
+            "colourScheme" TEXT NOT NULL,
+            s3_key TEXT UNIQUE NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )`;
+
         console.log("Creating 'fractals' table if it doesn't exist...");
         await client.query(fractalsTable);
         console.log("'fractals' table created or already exists.");
 
+        const historyTable = `
+        CREATE TABLE IF NOT EXISTS history (
+            id SERIAL PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            username TEXT NOT NULL,
+            fractal_id INTEGER,
+            generated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE SET NULL
+        )`;
+
         console.log("Creating 'history' table if it doesn't exist...");
         await client.query(historyTable);
         console.log("'history' table created or already exists.");
+
+        const galleryTable = `
+        CREATE TABLE IF NOT EXISTS gallery (
+            id SERIAL PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            fractal_id INTEGER NOT NULL,
+            fractal_hash TEXT NOT NULL,
+            added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, fractal_hash),
+            FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE CASCADE
+        )`;
 
         console.log("Creating 'gallery' table if it doesn't exist...");
         await client.query(galleryTable);
