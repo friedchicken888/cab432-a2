@@ -17,7 +17,6 @@ async function getDbSecrets() {
         );
         if (response.SecretString) {
             dbSecrets = JSON.parse(response.SecretString);
-            console.log("Successfully retrieved database secrets from AWS Secrets Manager. Keys retrieved: ", Object.keys(dbSecrets));
         }
     } catch (error) {
         console.error("Error retrieving database secrets:", error);
@@ -28,7 +27,6 @@ async function getDbSecrets() {
 async function initialiseDatabase() {
     try {
         const client = await pool.connect();
-        console.log('Connected to PostgreSQL database.');
 
         const fractalsTable = `
         CREATE TABLE IF NOT EXISTS fractals (
@@ -48,10 +46,7 @@ async function initialiseDatabase() {
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )`;
 
-        console.log("Creating 'fractals' table if it doesn't exist...");
         await client.query(fractalsTable);
-        console.log("'fractals' table created or already exists.");
-
         const historyTable = `
         CREATE TABLE IF NOT EXISTS history (
             id SERIAL PRIMARY KEY,
@@ -62,9 +57,7 @@ async function initialiseDatabase() {
             FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE SET NULL
         )`;
 
-        console.log("Creating 'history' table if it doesn't exist...");
         await client.query(historyTable);
-        console.log("'history' table created or already exists.");
 
         const galleryTable = `
         CREATE TABLE IF NOT EXISTS gallery (
@@ -77,9 +70,7 @@ async function initialiseDatabase() {
             FOREIGN KEY (fractal_id) REFERENCES fractals (id) ON DELETE CASCADE
         )`;
 
-        console.log("Creating 'gallery' table if it doesn't exist...");
         await client.query(galleryTable);
-        console.log("'gallery' table created or already exists.");
 
         console.log("Database initialised.");
 

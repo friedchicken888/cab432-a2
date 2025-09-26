@@ -80,7 +80,6 @@ async function generateFractal({
         for (let y = 0; y < height; y++) {
 
             if (Date.now() - startTime > maxTime) {
-                if (debugLog) debugLog('Time limit reached, aborting fractal generation.');
                 return null;
             }
 
@@ -107,10 +106,6 @@ async function generateFractal({
             data[idx + 1] = colour[1];
             data[idx + 2] = colour[2];
             data[idx + 3] = colour[3];
-        }
-
-        if (debugLog && x % 100 === 0) {
-            debugLog(`Progress: x=${x}/${width}`);
         }
 
         await new Promise(resolve => setImmediate(resolve));
