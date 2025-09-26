@@ -19,8 +19,8 @@ const initialised = new Promise(resolve => {
     _resolveAuthInitialised = resolve;
 });
 
-let _cognitoClient;
-let _idVerifier;
+let getCognitoClient;
+let getIdVerifier;
 
 (async () => {
     jwtSecret = await secretManagerService.getJwtSecret();
@@ -29,8 +29,8 @@ let _idVerifier;
     CLIENT_ID = cognitoSecrets.CLIENT_ID;
     CLIENT_SECRET = cognitoSecrets.CLIENT_SECRET;
 
-    _cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
-    _idVerifier = CognitoJwtVerifier.create({
+    getCognitoClient = () => new CognitoIdentityProviderClient({ region: POOL_REGION });
+    getIdVerifier = () => CognitoJwtVerifier.create({
         userPoolId: USER_POOL_ID,
         tokenUse: "id",
         clientId: CLIENT_ID,
@@ -54,7 +54,8 @@ async function verifyToken(req, res, next) {
     }
 
     try {
-        const payload = await _idVerifier.verify(token);
+        const idVerifier = getIdVerifier();
+        const payload = await idVerifier.verify(token);
         req.user = {
             id: payload.sub,
             username: payload['cognito:username'],
@@ -75,6 +76,7 @@ router.post('/signup', async (req, res) => {
         return res.status(400).send('Username, email, and password are required.');
     }
 
+    const cognitoClient = getCognitoClient();
     const params = {
         ClientId: CLIENT_ID,
         SecretHash: _secretHash(CLIENT_ID, CLIENT_SECRET, username),
@@ -87,7 +89,7 @@ router.post('/signup', async (req, res) => {
 
     try {
         const command = new SignUpCommand(params);
-        await _cognitoClient.send(command);
+        await cognitoClient.send(command);
         res.status(200).send('User registered successfully. Please check your email for a confirmation code.');
     } catch (error) {
         res.status(500).send(error.message);
@@ -102,6 +104,7 @@ router.post('/confirm', async (req, res) => {
         return res.status(400).send('Username and confirmation code are required.');
     }
 
+    const cognitoClient = getCognitoClient();
     const params = {
         ClientId: CLIENT_ID,
         SecretHash: _secretHash(CLIENT_ID, CLIENT_SECRET, username),
@@ -111,7 +114,7 @@ router.post('/confirm', async (req, res) => {
 
     try {
         const command = new ConfirmSignUpCommand(params);
-        await _cognitoClient.send(command);
+        await cognitoClient.send(command);
         res.status(200).send('User confirmed successfully.');
     } catch (error) {
         res.status(500).send(error.message);
@@ -126,6 +129,7 @@ router.post('/login', async (req, res) => {
         return res.status(400).send('Username and password are required.');
     }
 
+    const cognitoClient = getCognitoClient();
     const params = {
         AuthFlow: 'USER_PASSWORD_AUTH',
         ClientId: CLIENT_ID,
@@ -138,7 +142,7 @@ router.post('/login', async (req, res) => {
 
     try {
         const command = new InitiateAuthCommand(params);
-        await _cognitoClient.send(command);
+        const response = await cognitoClient.send(command);
         res.json({
             idToken: response.AuthenticationResult.IdToken,
             accessToken: response.AuthenticationResult.AccessToken,
