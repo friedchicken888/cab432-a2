@@ -24,12 +24,8 @@ router.get('/gallery', verifyToken, (req, res) => {
     const sortBy = req.query.sortBy;
     const sortOrder = req.query.sortOrder;
 
-    Gallery.getGalleryForUser(req.user.id, filters, sortBy, sortOrder, limit, offset, async (err, rows, totalCount) => {
-        if (err) {
-            return res.status(500).send("Database error");
-        }
         const galleryWithUrls = await Promise.all(rows.map(async row => {
-            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
+            const fractalUrl = row.s3_key ? await s3Service.getPresignedUrl(row.s3_key) : null;
             return { ...row, url: fractalUrl };
         }));
         res.json({ data: galleryWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
@@ -147,7 +143,7 @@ router.get('/admin/history', verifyToken, (req, res) => {
             return res.status(500).send("Database error");
         }
         const historyWithUrls = await Promise.all(rows.map(async row => {
-            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
+            const fractalUrl = row.s3_key ? await s3Service.getPresignedUrl(row.s3_key) : null;
             return { ...row, url: fractalUrl };
         }));
         res.json({ data: historyWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
@@ -181,7 +177,7 @@ router.get('/admin/gallery', verifyToken, (req, res) => {
             return res.status(500).send("Database error");
         }
         const galleryWithUrls = await Promise.all(rows.map(async row => {
-            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
+            const fractalUrl = row.s3_key ? await s3Service.getPresignedUrl(row.s3_key) : null;
             return { ...row, url: fractalUrl };
         }));
         res.json({ data: galleryWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
