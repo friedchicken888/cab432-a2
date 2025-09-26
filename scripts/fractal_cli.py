@@ -242,12 +242,15 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
             return {'data': data, 'totalCount': total_count, 'limit': current_limit, 'offset': current_offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder}
         else:
             print(f"No {title.lower()} items found for the current query.")
+            input("Press Enter to continue...")
             return {'data': [], 'totalCount': total_count, 'limit': current_limit, 'offset': current_offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder}
     except requests.exceptions.RequestException as e:
         print(f"Failed to retrieve {title.lower()}: {e}")
         if e.response is not None:
             print(f"HTTP Status Code: {e.response.status_code}")
             print(f"Response Body: {e.response.text}")
+        input("Press Enter to continue...")
+        return # Exit view_data after error
 
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
