@@ -82,6 +82,7 @@ async function initialiseDatabase() {
 
 let pool;
 let initialised;
+let _resolveDbInitialised;
 
 async function initDbAndPool() {
     await getDbSecrets();
@@ -104,11 +105,11 @@ async function initDbAndPool() {
 
     await initialiseDatabase();
 
-    if (initialised) initialised.resolve();
+    if (_resolveDbInitialised) _resolveDbInitialised();
 }
 
 initialised = new Promise(resolve => {
-    initialised.resolve = resolve;
+    _resolveDbInitialised = resolve;
 });
 
 initDbAndPool();
