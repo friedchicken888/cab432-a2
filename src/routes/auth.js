@@ -2,8 +2,15 @@ const express = require('express');
 const { CognitoIdentityProviderClient, SignUpCommand, ConfirmSignUpCommand, InitiateAuthCommand } = require('@aws-sdk/client-cognito-identity-provider');
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
 const crypto = require('crypto');
+const secretManagerService = require('../services/secretManagerService');
 
 const router = express.Router();
+
+let jwtSecret;
+
+(async () => {
+    jwtSecret = await secretManagerService.getJwtSecret();
+})();
 
 const POOL_REGION = process.env.AWS_COGNITO_POOL_REGION;
 const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
