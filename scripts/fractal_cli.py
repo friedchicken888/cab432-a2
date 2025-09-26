@@ -191,7 +191,9 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
             for entry in data:
                 timestamp_field = 'added_at' if 'added_at' in entry else 'generated_at'
                 user_info = ""
-                if view_type == "all_gallery" and 'user_id' in entry:
+                if view_type == "all_gallery" and 'username' in entry:
+                    user_info = f", User: {entry.get('username')}"
+                elif view_type == "all_gallery" and 'user_id' in entry:
                     user_info = f", Owner ID: {entry.get('user_id')}"
                 elif 'username' in entry:
                     user_info = f", User: {entry.get('username')}"
