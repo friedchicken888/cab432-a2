@@ -16,7 +16,7 @@ app.use('/api/auth', authRouter);
 app.use('/api', fractalRouter);
 app.use('/api', historyRouter);
 
-(async () => {
+async function startServer() {
   try {
     await s3Service.ensureBucketAndTags();
     app.listen(port, () => {
@@ -26,4 +26,6 @@ app.use('/api', historyRouter);
     console.error('Failed to initialise S3 bucket:', error);
     process.exit(1);
   }
-})();
+}
+
+startServer();
