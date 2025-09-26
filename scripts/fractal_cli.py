@@ -190,7 +190,11 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
             print(f"\n--- {title} (Total: {total_count}, Showing {current_offset}-{current_offset + len(data)} of {total_count}) ---")
             for entry in data:
                 timestamp_field = 'added_at' if 'added_at' in entry else 'generated_at'
-                user_info = f", User: {entry.get('username')}" if 'username' in entry else ''
+                user_info = ""
+                if view_type == "all_gallery" and 'user_id' in entry:
+                    user_info = f", Owner ID: {entry.get('user_id')}"
+                elif 'username' in entry:
+                    user_info = f", User: {entry.get('username')}"
                 
                 fractal_deleted = entry.get('fractal_deleted', False)
 
@@ -214,6 +218,25 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
                     print(f"ID: {entry.get('id')}, Hash: {display_hash}{user_info}, Time: {entry.get(timestamp_field)}")
                     print(f"  Params: W:{width}, H:{height}, Iter:{iterations}, Power:{power}, C:{c_real}+{c_imag}i, Scale:{scale}, Offset:{offset_x},{offset_y}, Color:{color_scheme}\n")
             
+            # New interactive section
+            while True:
+                action = input("Press Enter to continue, or enter an ID to get its URL: ").strip()
+                if not action:
+                    break # Exit this inner loop to continue with pagination/main menu
+                
+                try:
+                    selected_id = int(action)
+                    found_entry = next((e for e in data if e.get('id') == selected_id), None)
+                    if found_entry:
+                        if found_entry.get('url'):
+                            print(f"\nURL for ID {selected_id}: {found_entry['url']}\n")
+                        else:
+                            print(f"\nNo URL available for ID {selected_id} (fractal might be deleted).\n")
+                    else:
+                        print(f"\nNo entry found with ID {selected_id} on this page.\n")
+                except ValueError:
+                    print("\nInvalid input. Please enter an ID number or press Enter.\n")
+
             return {'data': data, 'totalCount': total_count, 'limit': current_limit, 'offset': current_offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder}
         else:
             print(f"No {title.lower()} items found for the current query.")
@@ -371,7 +394,6 @@ def user_menu():
                     break
                 else:
                     break
-            input("\nPress Enter to continue...")
         
         elif choice == "3":
             current_limit = None
@@ -425,7 +447,6 @@ def user_menu():
                     break
                 else:
                     break
-            input("\nPress Enter to continue...")
         elif choice == "4":
             current_limit = None
             current_offset = 0
@@ -477,7 +498,6 @@ def user_menu():
                     break
                 else:
                     break
-            input("\nPress Enter to continue...")
         elif choice == "5":
             clear_terminal()
             delete_gallery_entry()
