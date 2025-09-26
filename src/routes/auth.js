@@ -12,6 +12,7 @@ let CLIENT_ID;
 let CLIENT_SECRET;
 let cognitoClient;
 let idVerifier;
+let _secretHash;
 
 const POOL_REGION = process.env.AWS_COGNITO_POOL_REGION;
 
@@ -33,14 +34,14 @@ const initialised = new Promise(resolve => {
         tokenUse: "id",
         clientId: CLIENT_ID,
     });
+
+    _secretHash = (clientId, clientSecret, username) => {
+        const hasher = crypto.createHmac('sha256', clientSecret);
+        hasher.update(`${username}${clientId}`);
+        return hasher.digest('base64');
+    };
     _resolveAuthInitialised();
 })();
-
-function secretHash(clientId, clientSecret, username) {
-    const hasher = crypto.createHmac('sha256', clientSecret);
-    hasher.update(`${username}${clientId}`);
-    return hasher.digest('base64');
-}
 
 async function verifyToken(req, res, next) {
     await initialised;
@@ -75,7 +76,7 @@ router.post('/signup', async (req, res) => {
 
     const params = {
         ClientId: CLIENT_ID,
-        SecretHash: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+        SecretHash: _secretHash(CLIENT_ID, CLIENT_SECRET, username),
         Username: username,
         Password: password,
         UserAttributes: [
@@ -102,7 +103,7 @@ router.post('/confirm', async (req, res) => {
 
     const params = {
         ClientId: CLIENT_ID,
-        SecretHash: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+        SecretHash: _secretHash(CLIENT_ID, CLIENT_SECRET, username),
         Username: username,
         ConfirmationCode: confirmationCode,
     };
@@ -130,7 +131,7 @@ router.post('/login', async (req, res) => {
         AuthParameters: {
             USERNAME: username,
             PASSWORD: password,
-            SECRET_HASH: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+            SECRET_HASH: _secretHash(CLIENT_ID, CLIENT_SECRET, username),
         },
     };
 
