@@ -1,9 +1,7 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
-const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 
 const region = process.env.AWS_REGION || "ap-southeast-2";
 const secretsManagerClient = new SecretsManagerClient({ region: region });
-const ssmClient = new SSMClient({ region: region });
 
 let jwtSecret = null;
 let jwtSecretInitialised = false;
@@ -45,22 +43,22 @@ async function getCognitoClientSecret() {
     }
 
     try {
-        const parameter_name = "CAB432_A2_COGNITO_CLIENT_SECRET";
-        const response = await ssmClient.send(
-            new GetParameterCommand({
-                Name: parameter_name,
-                WithDecryption: true // Assuming it might be stored as SecureString
+        const secret_name = "n11051337-A2-Cognito";
+        const response = await secretsManagerClient.send(
+            new GetSecretValueCommand({
+                SecretId: secret_name
             })
         );
 
-        if (response.Parameter && response.Parameter.Value) {
-            cognitoClientSecret = response.Parameter.Value;
+        if (response.SecretString) {
+            const secrets = JSON.parse(response.SecretString);
+            cognitoClientSecret = secrets.COGNITO_CLIENT_SECRET;
             cognitoClientSecretInitialised = true;
             if (_resolveCognitoClientSecretInitialised) _resolveCognitoClientSecretInitialised();
             return cognitoClientSecret;
         }
     } catch (error) {
-        console.error("Error retrieving Cognito Client Secret from AWS Parameter Store:", error);
+        console.error("Error retrieving Cognito Client Secret from AWS Secrets Manager:", error);
         process.exit(1);
     }
 }
