@@ -7,15 +7,16 @@ const secretManagerService = require('../services/secretManagerService');
 const router = express.Router();
 
 let jwtSecret;
+let cognitoClientSecret;
 
 (async () => {
     jwtSecret = await secretManagerService.getJwtSecret();
+    cognitoClientSecret = await secretManagerService.getCognitoClientSecret();
 })();
 
-const POOL_REGION = process.env.AWS_COGNITO_POOL_REGION;
+const POOL_REGION = process.env.AWS_REGION;
 const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
 const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
-const CLIENT_SECRET = process.env.AWS_COGNITO_CLIENT_SECRET;
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
 
@@ -62,7 +63,7 @@ router.post('/signup', async (req, res) => {
 
     const params = {
         ClientId: CLIENT_ID,
-        SecretHash: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+        SecretHash: secretHash(CLIENT_ID, cognitoClientSecret, username),
         Username: username,
         Password: password,
         UserAttributes: [
@@ -88,7 +89,7 @@ router.post('/confirm', async (req, res) => {
 
     const params = {
         ClientId: CLIENT_ID,
-        SecretHash: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+        SecretHash: secretHash(CLIENT_ID, cognitoClientSecret, username),
         Username: username,
         ConfirmationCode: confirmationCode,
     };
@@ -115,7 +116,7 @@ router.post('/login', async (req, res) => {
         AuthParameters: {
             USERNAME: username,
             PASSWORD: password,
-            SECRET_HASH: secretHash(CLIENT_ID, CLIENT_SECRET, username),
+            SECRET_HASH: secretHash(CLIENT_ID, cognitoClientSecret, username),
         },
     };
 
