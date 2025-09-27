@@ -45,7 +45,7 @@ async function getCognitoClientSecret() {
     }
 
     try {
-        const parameter_name = "AWS_COGNITO_CLIENT_SECRET";
+        const parameter_name = "CAB432_A2_COGNITO_CLIENT_SECRET";
         const response = await ssmClient.send(
             new GetParameterCommand({
                 Name: parameter_name,
