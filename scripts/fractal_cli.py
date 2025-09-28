@@ -357,13 +357,16 @@ def user_menu():
     global current_user_info, current_token
     while True:
         clear_terminal()
-        print("\n--- Main Menu ---")
         if current_user_info:
-            user_role = current_user_info.get('custom:role', 'user')
+            user_role = 'user'
+            if current_user_info.get('cognito:groups') and 'admin' in current_user_info.get('cognito:groups'):
+                user_role = 'admin'
             username = current_user_info.get('cognito:username', 'Unknown')
             print(f"Logged in as: {username} (Role: {user_role})")
         else:
             print("Not logged in.")
+
+        print("\n--- Main Menu ---")
 
         print("1. Generate Fractal")
         print("2. View My Gallery")
