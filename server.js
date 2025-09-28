@@ -5,6 +5,7 @@ const express = require('express');
 const { router: authRouter, verifyToken } = require('./src/routes/auth');
 const fractalRouter = require('./src/routes/fractal');
 const historyRouter = require('./src/routes/history');
+const galleryRouter = require('./src/routes/gallery');
 
 const s3Service = require('./src/services/s3Service');
 const awsConfigService = require('./src/services/awsConfigService');
@@ -18,6 +19,7 @@ app.use('/fractals', express.static('fractals'));
 app.use('/api/auth', authRouter);
 app.use('/api', fractalRouter);
 app.use('/api', historyRouter);
+app.use('/api', galleryRouter);
 
 (async () => {
   try {
