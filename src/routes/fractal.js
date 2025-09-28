@@ -94,6 +94,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
             const fractalData = { ...options, hash, s3Key };
 
             const result = await Fractal.createFractal(fractalData);
+            console.log("DEBUG: Result from Fractal.createFractal:", result);
 
             await History.createHistoryEntry(req.user.id, req.user.username, result.id);
 
