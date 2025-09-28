@@ -1,4 +1,6 @@
 
+require('dotenv').config();
+
 const express = require('express');
 const { router: authRouter, verifyToken } = require('./src/routes/auth');
 const fractalRouter = require('./src/routes/fractal');
