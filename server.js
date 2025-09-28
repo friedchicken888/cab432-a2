@@ -1,9 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const { initializeAuth } = require('./src/routes/auth');
-// ... other imports
+const fractalRouter = require('./src/routes/fractal');
+const historyRouter = require('./src/routes/history');
 
-// ... app setup
+const s3Service = require('./src/services/s3Service');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use('/fractals', express.static('fractals'));
 
 (async () => {
   try {
