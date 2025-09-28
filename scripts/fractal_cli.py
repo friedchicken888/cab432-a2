@@ -20,7 +20,8 @@ def login(username, password):
         data = r.json()
 
         if r.status_code == 202 and data.get('challengeName') == 'EMAIL_OTP':
-            print("MFA challenge initiated. Please check your email for a verification code.")
+            clear_terminal()
+            print("\nMFA challenge initiated. Please check your email for a verification code.")
             mfa_code = input("Enter MFA code: ")
             return confirm_mfa(username, mfa_code, data['session'])
 
