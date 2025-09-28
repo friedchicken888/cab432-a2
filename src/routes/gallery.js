@@ -11,16 +11,20 @@ const generateCacheKey = (userId, filters, sortBy, sortOrder, limit, offset) => 
 };
 
 router.get('/gallery', verifyToken, async (req, res) => {
+    console.log("DEBUG: Received GET request for /api/gallery");
     const userId = req.user.id;
     const { limit = 5, offset = 0, sortBy = 'added_at', sortOrder = 'DESC', ...filters } = req.query;
 
     const cacheKey = generateCacheKey(userId, filters, sortBy, sortOrder, limit, offset);
 
     try {
+        console.log(`DEBUG: /api/gallery - Attempting to get from cache with key: ${cacheKey}`);
         let cachedData = await cacheService.get(cacheKey);
         if (cachedData) {
+            console.log(`DEBUG: /api/gallery - Cache hit for key: ${cacheKey}`);
             return res.json(cachedData);
         }
+        console.log(`DEBUG: /api/gallery - Cache miss for key: ${cacheKey}. Fetching from DB.`);
 
         const { rows, totalCount } = await Gallery.getGalleryForUser(
             userId,
@@ -45,6 +49,7 @@ router.get('/gallery', verifyToken, async (req, res) => {
             offset: parseInt(offset),
         };
 
+        console.log(`DEBUG: /api/gallery - Setting cache for key: ${cacheKey}`);
         await cacheService.set(cacheKey, responseData);
         res.json(responseData);
 
@@ -55,6 +60,7 @@ router.get('/gallery', verifyToken, async (req, res) => {
 });
 
 router.get('/admin/gallery', verifyToken, async (req, res) => {
+    console.log("DEBUG: Received GET request for /api/admin/gallery");
     if (req.user.role !== 'admin') {
         return res.status(403).send('Access denied. Admin role required.');
     }
@@ -64,10 +70,13 @@ router.get('/admin/gallery', verifyToken, async (req, res) => {
     const cacheKey = `admin:gallery:${JSON.stringify(filters)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
 
     try {
+        console.log(`DEBUG: /api/admin/gallery - Attempting to get from cache with key: ${cacheKey}`);
         let cachedData = await cacheService.get(cacheKey);
         if (cachedData) {
+            console.log(`DEBUG: /api/admin/gallery - Cache hit for key: ${cacheKey}`);
             return res.json(cachedData);
         }
+        console.log(`DEBUG: /api/admin/gallery - Cache miss for key: ${cacheKey}. Fetching from DB.`);
 
         const { rows, totalCount } = await Gallery.getAllGallery(
             filters,
@@ -91,6 +100,7 @@ router.get('/admin/gallery', verifyToken, async (req, res) => {
             offset: parseInt(offset),
         };
 
+        console.log(`DEBUG: /api/admin/gallery - Setting cache for key: ${cacheKey}`);
         await cacheService.set(cacheKey, responseData);
         res.json(responseData);
 
