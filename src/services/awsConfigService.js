@@ -10,7 +10,7 @@ async function getAwsRegion() {
         return cachedAwsRegion;
     }
     try {
-        const client = new SSMClient({ region: process.env.AWS_REGION || "ap-southeast-2" });
+        const client = new SSMClient({ region: "ap-southeast-2" });
         const command = new GetParameterCommand({
             Name: '/n11051337/aws_region',
             WithDecryption: true,
