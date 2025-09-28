@@ -87,6 +87,7 @@ router.post('/signup', async (req, res) => {
         ClientId: CLIENT_ID,
         SecretHash: await secretHash(CLIENT_ID, username),
         Username: username,
+        Password: password,
         UserAttributes: [
             { Name: 'email', Value: email },
         ],
