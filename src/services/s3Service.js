@@ -4,10 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const dotenv = require('dotenv');
 const { getAwsRegion, getParameter } = require("./awsConfigService");
 
-let s3ClientInstance = null;
-let BUCKET_NAME;
-let QUT_USERNAME;
-let PURPOSE;
+let s3ConfigInitialised = null;
 
 async function initialiseS3Config() {
   BUCKET_NAME = await getParameter('/n11051337/s3_bucket_name');
@@ -20,7 +17,7 @@ async function initialiseS3Config() {
   }
 }
 
-initialiseS3Config();
+s3ConfigInitialised = initialiseS3Config();
 
 async function getS3Client() {
   if (s3ClientInstance) {
@@ -36,8 +33,9 @@ async function getS3Client() {
 
 const s3Service = {
   async ensureBucketAndTags() {
+    await s3ConfigInitialised;
     if (!BUCKET_NAME) {
-      console.error('S3_BUCKET_NAME is not defined in .env');
+      console.error('S3_BUCKET_NAME is not defined in Parameter Store. Exiting application.');
       throw new Error('S3_BUCKET_NAME is not defined.');
     }
 
@@ -80,6 +78,7 @@ const s3Service = {
   },
 
   async uploadFile(fileBuffer, contentType, folder = 'fractals') {
+    await s3ConfigInitialised;
     const key = `${folder}/${uuidv4()}.png`;
     const params = {
       Bucket: BUCKET_NAME,
@@ -100,6 +99,7 @@ const s3Service = {
   },
 
   async getPresignedUrl(key, expiresSeconds = 300) {
+    await s3ConfigInitialised;
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
@@ -115,6 +115,7 @@ const s3Service = {
   },
 
   async deleteFile(key) {
+    await s3ConfigInitialised;
     const params = {
       Bucket: BUCKET_NAME,
       Key: key,
