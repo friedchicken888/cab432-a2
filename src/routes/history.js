@@ -7,9 +7,7 @@ const Gallery = require('../models/gallery.model.js');
 const s3Service = require('../services/s3Service');
 
 router.get('/admin/history', verifyToken, async (req, res) => {
-    console.log("DEBUG: Received GET request for /api/admin/history");
     if (req.user.role !== 'admin') {
-        console.log("DEBUG: Access denied for non-admin user to /api/admin/history");
         return res.status(403).send('Access denied. Admin privileges required.');
     }
 
@@ -30,17 +28,14 @@ router.get('/admin/history', verifyToken, async (req, res) => {
     const sortBy = req.query.sortBy;
     const sortOrder = req.query.sortOrder;
 
-    console.log("DEBUG: Calling History.getAllHistory...");
     try {
         const { rows, totalCount } = await History.getAllHistory(filters, sortBy, sortOrder, limit, offset);
-        console.log(`DEBUG: History.getAllHistory returned ${rows.length} rows. Total: ${totalCount}`);
         const historyWithUrls = await Promise.all(rows.map(async row => {
             const fractalUrl = row.s3_key ? await s3Service.getPresignedUrl(row.s3_key) : null;
             return { ...row, url: fractalUrl };
         }));
         res.json({ data: historyWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
     } catch (err) {
-        console.error("DEBUG: Error from History.getAllHistory:", err);
         return res.status(500).send("Database error");
     }
 });
