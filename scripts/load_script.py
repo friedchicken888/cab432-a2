@@ -8,7 +8,6 @@ FRACTAL_URL = ""
 
 USERS = {
     "user": {"username": "user", "password": "Testtest123!"},
-    "user2": {"username": "user2", "password": "Testtest123!"},
     "admin": {"username": "admin", "password": "Testtest123!"}
 }
 
