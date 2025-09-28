@@ -20,7 +20,10 @@ const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
 
-function secretHash(clientId, clientSecret, username) {
+async function secretHash(clientId, clientSecret, username) {
+    if (!clientSecret) {
+        clientSecret = await secretManagerService.getCognitoClientSecret();
+    }
     const hasher = crypto.createHmac('sha256', clientSecret);
     hasher.update(`${username}${clientId}`);
     return hasher.digest('base64');
@@ -63,9 +66,7 @@ router.post('/signup', async (req, res) => {
 
     const params = {
         ClientId: CLIENT_ID,
-        SecretHash: secretHash(CLIENT_ID, cognitoClientSecret, username),
-        Username: username,
-        Password: password,
+        SecretHash: await secretHash(CLIENT_ID, cognitoClientSecret, username),
         UserAttributes: [
             { Name: 'email', Value: email },
         ],
@@ -89,7 +90,7 @@ router.post('/confirm', async (req, res) => {
 
     const params = {
         ClientId: CLIENT_ID,
-        SecretHash: secretHash(CLIENT_ID, cognitoClientSecret, username),
+        SecretHash: await secretHash(CLIENT_ID, cognitoClientSecret, username),
         Username: username,
         ConfirmationCode: confirmationCode,
     };
@@ -116,7 +117,7 @@ router.post('/login', async (req, res) => {
         AuthParameters: {
             USERNAME: username,
             PASSWORD: password,
-            SECRET_HASH: secretHash(CLIENT_ID, cognitoClientSecret, username),
+            SECRET_HASH: await secretHash(CLIENT_ID, cognitoClientSecret, username),
         },
     };
 
