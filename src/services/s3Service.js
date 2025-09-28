@@ -1,8 +1,12 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, CreateBucketCommand, PutBucketTaggingCommand, HeadBucketCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { v4: uuidv4 } = require('uuid');
-const dotenv = require('dotenv');
 const { getAwsRegion, getParameter } = require("./awsConfigService");
+
+let s3ClientInstance = null;
+let BUCKET_NAME;
+let QUT_USERNAME;
+let PURPOSE;
 
 let s3ConfigInitialised = null;
 
