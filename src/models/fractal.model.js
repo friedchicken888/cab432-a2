@@ -28,7 +28,9 @@ exports.createFractal = (data) => {
         const params = [data.hash, data.width, data.height, data.maxIterations, data.power, data.c.real, data.c.imag, data.scale, data.offsetX, data.offsetY, data.colourScheme, data.s3Key];
         db.query(sql, params, (err, result) => {
             if (err) return reject(err);
-            resolve({ id: result.rows[0].id });
+            const newFractalId = result.rows[0].id;
+            cacheService.del(`fractal:hash:${data.hash}`); // Invalidate cache for this hash
+            resolve({ id: newFractalId });
         });
     });
 };
