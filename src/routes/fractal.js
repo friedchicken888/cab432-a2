@@ -9,6 +9,12 @@ const Gallery = require('../models/gallery.model.js');
 const s3Service = require('../services/s3Service');
 const cacheService = require('../services/cacheService');
 
+// Helper function to generate a consistent cache key for gallery entries
+const generateCacheKey = (userId, filters, sortBy, sortOrder, limit, offset) => {
+    const filterString = JSON.stringify(filters || {});
+    return `gallery:${userId}:${filterString}:${sortBy || ''}:${sortOrder || ''}:${limit || ''}:${offset || ''}`;
+};
+
 let isGenerating = false;
 
 router.get('/fractal', verifyToken, async (req, res) => {
