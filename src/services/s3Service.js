@@ -43,8 +43,9 @@ const s3Service = {
       throw new Error('S3_BUCKET_NAME is not defined.');
     }
 
+    let s3Client;
     try {
-      const s3Client = await getS3Client();
+      s3Client = await getS3Client();
       // Check if bucket exists
       await s3Client.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }));
     } catch (error) {
