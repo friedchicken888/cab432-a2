@@ -33,31 +33,42 @@ router.get('/fractal', verifyToken, async (req, res) => {
     const hash = crypto.createHash('sha256').update(JSON.stringify(options)).digest('hex');
 
     try {
+        console.log(`DEBUG: /fractal - User ID: ${req.user.id}`);
+        console.log(`DEBUG: /fractal - Fractal hash: ${hash}`);
+        let row = await Fractal.findFractalByHash(hash);
+
         if (row) {
+            console.log(`DEBUG: /fractal - Existing fractal found with ID: ${row.id}`);
             // Verify that the fractal_id actually exists in the fractals table
             const dbFractal = await Fractal.getFractalById(row.id);
             if (!dbFractal) {
+                console.warn(`WARN: Cached fractal ID ${row.id} not found in database. Treating as new fractal.`);
                 row = null; // Treat as if fractal was not found
             }
         }
 
         if (row) {
+            console.log(`DEBUG: /fractal - Proceeding with existing fractal ID: ${row.id}`);
             // Fractal found in DB (or cache)
             await History.createHistoryEntry(req.user.id, req.user.username, row.id);
 
             let galleryEntry = await Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash);
+            console.log(`DEBUG: /fractal - Existing gallery entry found: ${JSON.stringify(galleryEntry)}`);
 
             let galleryId;
             if (galleryEntry) {
                 galleryId = galleryEntry.id;
             } else {
+                console.log(`DEBUG: /fractal - Adding existing fractal to gallery for user.`);
                 galleryId = await Gallery.addToGallery(req.user.id, row.id, row.hash);
+                console.log(`DEBUG: /fractal - Added existing fractal to gallery with ID: ${galleryId}`);
             }
 
             const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
             return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
 
         } else {
+            console.log(`DEBUG: /fractal - Fractal not found or invalid. Generating new one.`);
             // Fractal not found, generate a new one
             isGenerating = true;
             let buffer;
@@ -85,16 +96,19 @@ router.get('/fractal', verifyToken, async (req, res) => {
             const fractalData = { ...options, hash, s3Key };
 
             const result = await Fractal.createFractal(fractalData);
+            console.log(`DEBUG: /fractal - New fractal created with ID: ${result.id}`);
 
             await History.createHistoryEntry(req.user.id, req.user.username, result.id);
 
+            console.log(`DEBUG: /fractal - Adding new fractal to gallery for user.`);
             const newGalleryId = await Gallery.addToGallery(req.user.id, result.id, hash);
+            console.log(`DEBUG: /fractal - Added new fractal to gallery with ID: ${newGalleryId}`);
 
             const fractalUrl = await s3Service.getPresignedUrl(s3Key);
             res.json({ hash, url: fractalUrl, galleryId: newGalleryId });
         }
     } catch (error) {
-        console.error("Error in /fractal route:", error);
+        console.error("DEBUG: Error in /fractal route:", error);
         res.status(500).send("Internal server error");
     }
 });
