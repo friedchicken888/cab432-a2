@@ -72,7 +72,7 @@ async function initialiseDatabase() {
 
         await client.query(galleryTable);
 
-        console.log("Database initialised.");
+        
 
         client.release();
     } catch (err) {
