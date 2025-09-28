@@ -9,6 +9,7 @@ const galleryRouter = require('./src/routes/gallery');
 
 const s3Service = require('./src/services/s3Service');
 const awsConfigService = require('./src/services/awsConfigService');
+const cacheService = require('./src/services/cacheService');
 
 const app = express();
 let port;
@@ -29,6 +30,7 @@ app.use('/api', galleryRouter);
       process.exit(1);
     }
     await s3Service.ensureBucketAndTags();
+    await cacheService.init();
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
     });

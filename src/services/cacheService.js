@@ -1,12 +1,20 @@
 const Memcached = require("memcached");
 const util = require("node:util");
+const { getParameter } = require("./awsConfigService");
 
-const memcachedAddress = process.env.MEMCACHED_ADDRESS;
 let memcachedClient = null;
+let memcachedAddress = null;
 
-if (!memcachedAddress) {
-    
-} else {
+const initCache = async () => {
+    if (memcachedClient) return; // Already initialized
+
+    memcachedAddress = await getParameter('/n11051337/memcached_address');
+
+    if (!memcachedAddress) {
+        console.error("MEMCACHED_ADDRESS not found in Parameter Store. Caching will be disabled.");
+        return;
+    }
+
     memcachedClient = new Memcached(memcachedAddress);
 
     memcachedClient.on("failure", (details) => {
@@ -25,9 +33,10 @@ if (!memcachedAddress) {
     memcachedClient.aGet = util.promisify(memcachedClient.get);
     memcachedClient.aSet = util.promisify(memcachedClient.set);
     memcachedClient.aDel = util.promisify(memcachedClient.del);
-}
+};
 
 const cacheService = {
+    init: initCache,
     get: async (key) => {
         if (!memcachedClient) return null;
         try {
