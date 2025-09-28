@@ -8,7 +8,9 @@ const s3Service = require('../services/s3Service');
 
 const generateCacheKey = (userId, filters, sortBy, sortOrder, limit, offset) => {
     const filterString = JSON.stringify(filters || {});
-    return `gallery:${userId}:${filterString}:${sortBy || ''}:${sortOrder || ''}:${limit || ''}:${offset || ''}`;
+    const actualLimit = limit !== undefined ? limit : '';
+    const actualOffset = offset !== undefined ? offset : '';
+    return `gallery:${userId}:${filterString}:${sortBy || ''}:${sortOrder || ''}:${actualLimit}:${actualOffset}`;
 };
 
 router.get('/gallery', verifyToken, async (req, res) => {

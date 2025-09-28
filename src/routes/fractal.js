@@ -12,7 +12,9 @@ const cacheService = require('../services/cacheService');
 // Helper function to generate a consistent cache key for gallery entries
 const generateCacheKey = (userId, filters, sortBy, sortOrder, limit, offset) => {
     const filterString = JSON.stringify(filters || {});
-    return `gallery:${userId}:${filterString}:${sortBy || ''}:${sortOrder || ''}:${limit || ''}:${offset || ''}`;
+    const actualLimit = limit !== undefined ? limit : '';
+    const actualOffset = offset !== undefined ? offset : '';
+    return `gallery:${userId}:${filterString}:${sortBy || ''}:${sortOrder || ''}:${actualLimit}:${actualOffset}`;
 };
 
 let isGenerating = false;
