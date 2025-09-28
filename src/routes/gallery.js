@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('./auth.js');
 const Gallery = require('../models/gallery.model.js');
+const Fractal = require('../models/fractal.model.js'); // Added import
 const cacheService = require('../services/cacheService');
-const s3Service = require('../services/s3Service');
+const s3Service = require('../services/s3Service'); // Added import
 
 const generateCacheKey = (userId, filters, sortBy, sortOrder, limit, offset) => {
     return `gallery:${userId}:${JSON.stringify(filters)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
@@ -58,59 +59,49 @@ router.get('/gallery', verifyToken, async (req, res) => {
     }
 });
 
-router.get('/admin/gallery', verifyToken, async (req, res) => {
-    console.log("DEBUG: Received GET request for /api/admin/gallery");
-    if (req.user.role !== 'admin') {
-        return res.status(403).send('Access denied. Admin role required.');
-    }
-
-    const { limit = 5, offset = 0, sortBy = 'added_at', sortOrder = 'DESC', ...filters } = req.query;
-
-    const cacheKey = `admin:gallery:${JSON.stringify(filters)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
+router.delete('/gallery/:id', verifyToken, async (req, res) => {
+    const galleryId = req.params.id;
+    const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
 
     try {
-        console.log(`DEBUG: /api/admin/gallery - Attempting to get from cache with key: ${cacheKey}`);
-        let cachedData = await cacheService.get(cacheKey);
-        if (cachedData) {
-            console.log(`DEBUG: /api/admin/gallery - Cache hit for key: ${cacheKey}`);
-            return res.json(cachedData);
-        }
-        console.log(`DEBUG: /api/admin/gallery - Cache miss for key: ${cacheKey}. Fetching from DB.`);
-
-        const { rows, totalCount } = await Gallery.getAllGallery(
-            filters,
-            sortBy,
-            sortOrder,
-            parseInt(limit),
-            parseInt(offset)
-        );
-
-        const galleryWithUrls = await Promise.all(rows.map(async (entry) => {
-            if (entry.s3_key) {
-                entry.url = await s3Service.getPresignedUrl(entry.s3_key);
+        const row = await Gallery.getGalleryEntry(galleryId, userId, isAdmin);
+        if (!row) {
+            if (!isAdmin) {
+                return res.status(404).send("Gallery entry not found or you don't have permission to delete it.");
+            } else {
+                return res.status(404).send("Gallery entry not found.");
             }
-            return entry;
-        }));
+        }
 
-        const responseData = {
-            data: galleryWithUrls,
-            totalCount,
-            limit: parseInt(limit),
-            offset: parseInt(offset),
-        };
+        const fractalId = row.fractal_id;
+        const fractalHash = row.fractal_hash;
 
-        console.log(`DEBUG: /api/admin/gallery - Setting cache for key: ${cacheKey}`);
-        await cacheService.set(cacheKey, responseData);
-        res.json(responseData);
+        await Gallery.deleteGalleryEntry(galleryId, userId, isAdmin);
 
+        const countRow = await Gallery.countGalleryByFractalHash(fractalHash);
+
+        if (parseInt(countRow.count) === 0) {
+            const fractalRow = await Fractal.getFractalS3Key(fractalId);
+            if (fractalRow && fractalRow.s3_key) {
+                const s3KeyToDelete = fractalRow.s3_key;
+                await s3Service.deleteFile(s3KeyToDelete);
+                await Fractal.deleteFractal(fractalId);
+                res.send({ message: "Gallery entry and associated fractal deleted successfully" });
+            } else {
+                await Fractal.deleteFractal(fractalId);
+                res.send({ message: "Gallery entry and associated fractal deleted successfully" });
+            }
+        } else {
+            res.send({ message: "Gallery entry deleted successfully" });
+        }
     } catch (error) {
-        console.error('Error in /admin/gallery route:', error);
-        res.status(500).send('Internal server error');
+        console.error(`Error deleting gallery entry ${galleryId}:`, error);
+        res.status(500).send("Internal server error");
     }
 });
 
 router.get('/admin/gallery', verifyToken, async (req, res) => {
-    console.log("DEBUG: Received GET request for /api/admin/gallery");
     if (req.user.role !== 'admin') {
         return res.status(403).send('Access denied. Admin role required.');
     }
@@ -120,13 +111,10 @@ router.get('/admin/gallery', verifyToken, async (req, res) => {
     const cacheKey = `admin:gallery:${JSON.stringify(filters)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
 
     try {
-        console.log(`DEBUG: /api/admin/gallery - Attempting to get from cache with key: ${cacheKey}`);
         let cachedData = await cacheService.get(cacheKey);
         if (cachedData) {
-            console.log(`DEBUG: /api/admin/gallery - Cache hit for key: ${cacheKey}`);
             return res.json(cachedData);
         }
-        console.log(`DEBUG: /api/admin/gallery - Cache miss for key: ${cacheKey}. Fetching from DB.`);
 
         const { rows, totalCount } = await Gallery.getAllGallery(
             filters,
@@ -150,7 +138,6 @@ router.get('/admin/gallery', verifyToken, async (req, res) => {
             offset: parseInt(offset),
         };
 
-        console.log(`DEBUG: /api/admin/gallery - Setting cache for key: ${cacheKey}`);
         await cacheService.set(cacheKey, responseData);
         res.json(responseData);
 
