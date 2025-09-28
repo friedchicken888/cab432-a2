@@ -27,10 +27,7 @@ exports.createFractal = (data) => {
                      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`;
         const params = [data.hash, data.width, data.height, data.maxIterations, data.power, data.c.real, data.c.imag, data.scale, data.offsetX, data.offsetY, data.colourScheme, data.s3Key];
         db.query(sql, params, (err, result) => {
-            if (err) {
-                console.error("Error in createFractal:", err);
-                return reject(err);
-            }
+            if (err) return reject(err);
             resolve({ id: result.rows[0].id });
         });
     });

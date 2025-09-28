@@ -45,8 +45,17 @@ router.get('/fractal', verifyToken, async (req, res) => {
         let row = await Fractal.findFractalByHash(hash);
 
         if (row) {
+            // Re-verify fractal existence in DB, in case of stale cache
+            const verifiedFractal = await Fractal.getFractalById(row.id);
+            if (!verifiedFractal) {
+                // If fractal not found in DB, treat as if it was never found
+                row = null;
+            } else {
+                row = verifiedFractal; // Use the verified fractal data
+            }
+        }
 
-
+        if (row) { // fractal found and verified
             let galleryEntry = await Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash);
 
             let galleryId;
@@ -66,7 +75,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
             const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
             return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
 
-        } else {
+        } else { // fractal not found, generate new one
             // Fractal not found, generate a new one
             isGenerating = true;
             let buffer;
@@ -94,11 +103,12 @@ router.get('/fractal', verifyToken, async (req, res) => {
             const fractalData = { ...options, hash, s3Key };
 
             const result = await Fractal.createFractal(fractalData);
-            console.log("DEBUG: Result from Fractal.createFractal:", result);
-
-            await History.createHistoryEntry(req.user.id, req.user.username, result.id);
-
-            const newGalleryId = await Gallery.addToGallery(req.user.id, result.id, hash);
+            const createdFractal = await Fractal.findFractalByHash(hash); // Ensure fractal is committed and get its ID
+            if (!createdFractal) {
+                return res.status(500).send("Failed to retrieve newly created fractal.");
+            }
+            await History.createHistoryEntry(req.user.id, req.user.username, createdFractal.id);
+            const newGalleryId = await Gallery.addToGallery(req.user.id, createdFractal.id, hash);
             // Invalidate the default cache key for the user's gallery
             const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
             await cacheService.del(userCacheKey);
