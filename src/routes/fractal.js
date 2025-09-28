@@ -45,23 +45,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
         let row = await Fractal.findFractalByHash(hash);
 
         if (row) {
-            console.log(`DEBUG: /fractal - Existing fractal found with ID: ${row.id}`);
-            // Verify that the fractal_id actually exists in the fractals table
-            const dbFractal = await Fractal.getFractalById(row.id);
-            console.log(`DEBUG: /fractal - dbFractal after getFractalById: ${JSON.stringify(dbFractal)}`);
-            if (!dbFractal) {
-                console.warn(`WARN: Cached fractal ID ${row.id} not found in database. Treating as new fractal.`);
-                // Invalidate the stale cache entry
-                await cacheService.del(`fractal:hash:${hash}`);
-                row = null; // Treat as if fractal was not found
-                console.log(`DEBUG: /fractal - row after invalidation: ${JSON.stringify(row)}`);
-            } else {
-                console.log(`DEBUG: /fractal - dbFractal found in database: ${JSON.stringify(dbFractal)}`);
-            }
-        }
 
-        if (row) {
-            console.log(`DEBUG: /fractal - Proceeding with existing fractal ID: ${row.id}`);
 
             let galleryEntry = await Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash);
 
@@ -71,12 +55,10 @@ router.get('/fractal', verifyToken, async (req, res) => {
             } else {
                 galleryId = await Gallery.addToGallery(req.user.id, row.id, row.hash);
                 // Invalidate the default cache key for the user's gallery
-                console.log(`DEBUG: /fractal - About to delete gallery cache for user ${req.user.id}`);
                 const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
                 await cacheService.del(userCacheKey);
 
                 // Invalidate the default cache key for the admin gallery
-                console.log(`DEBUG: /fractal - About to delete admin gallery cache`);
                 const adminCacheKey = `admin:gallery:${JSON.stringify({})}:added_at:DESC:5:0`;
                 await cacheService.del(adminCacheKey);
             }
@@ -91,7 +73,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
             try {
                 buffer = await generateFractal(options);
             } catch (err) {
-                console.error(err);
+
                 return res.status(500).send('Fractal generation failed');
             } finally {
                 isGenerating = false;
@@ -105,7 +87,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
             try {
                 s3Key = await s3Service.uploadFile(buffer, 'image/png', 'fractals');
             } catch (uploadErr) {
-                console.error("Error uploading fractal to S3:", uploadErr);
+
                 return res.status(500).send("Failed to upload fractal image.");
             }
 
@@ -117,12 +99,10 @@ router.get('/fractal', verifyToken, async (req, res) => {
 
             const newGalleryId = await Gallery.addToGallery(req.user.id, result.id, hash);
             // Invalidate the default cache key for the user's gallery
-            console.log(`DEBUG: /fractal - About to delete gallery cache for user ${req.user.id}`);
             const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
             await cacheService.del(userCacheKey);
 
             // Invalidate the default cache key for the admin gallery
-            console.log(`DEBUG: /fractal - About to delete admin gallery cache`);
             const adminCacheKey = `admin:gallery:${JSON.stringify({})}:added_at:DESC:5:0`;
             await cacheService.del(adminCacheKey);
 
@@ -130,7 +110,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
             res.json({ hash, url: fractalUrl, galleryId: newGalleryId });
         }
     } catch (error) {
-        console.error("DEBUG: Error in /fractal route:", error);
+        console.error("Error in /fractal route:", error);
         res.status(500).send("Internal server error");
     }
 });

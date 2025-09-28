@@ -13,7 +13,7 @@ const options = {
     colourScheme: 'rainbow'
 };
 
-console.log('Starting fractal generation with options:', options);
+
 
 const startTime = Date.now();
 
@@ -23,5 +23,3 @@ const endTime = Date.now();
 const duration = ((endTime - startTime) / 1000).toFixed(2);
 
 fs.writeFileSync('test_fractal.png', buffer);
-
-console.log(`Fractal generated and saved as test_fractal.png in ${duration} seconds`);

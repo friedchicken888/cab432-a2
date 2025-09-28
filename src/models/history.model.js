@@ -81,9 +81,9 @@ exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset) => {
         const order = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
 
         const countSql = `SELECT COUNT(*) as "totalCount" FROM history h LEFT JOIN fractals f ON h.fractal_id = f.id ${whereSql}`;
-        console.log("DEBUG: Executing countSql:", countSql, "with params:", params);
+
         db.query(countSql, params, (err, countResult) => {
-            console.log("DEBUG: countSql callback invoked.");
+            
             if (err) {
                 return reject(err);
             }
