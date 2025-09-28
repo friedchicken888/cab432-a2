@@ -24,6 +24,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "memcached": "^2.2.2",
     "node-fetch": "^2.7.0",
     "pg": "^8.11.5",
     "uuid": "^9.0.0"
