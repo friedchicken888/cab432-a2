@@ -40,15 +40,20 @@ router.get('/fractal', verifyToken, async (req, res) => {
             console.log(`DEBUG: /fractal - Existing fractal found with ID: ${row.id}`);
             // Verify that the fractal_id actually exists in the fractals table
             const dbFractal = await Fractal.getFractalById(row.id);
+            console.log(`DEBUG: /fractal - dbFractal after getFractalById: ${JSON.stringify(dbFractal)}`);
             if (!dbFractal) {
+                console.warn(`WARN: Cached fractal ID ${row.id} not found in database. Treating as new fractal.`);
+                // Invalidate the stale cache entry
                 await cacheService.del(`fractal:hash:${hash}`);
                 row = null; // Treat as if fractal was not found
+                console.log(`DEBUG: /fractal - row after invalidation: ${JSON.stringify(row)}`);
+            } else {
+                console.log(`DEBUG: /fractal - dbFractal found in database: ${JSON.stringify(dbFractal)}`);
             }
         }
 
         if (row) {
-            // Fractal found in DB (or cache)
-            await History.createHistoryEntry(req.user.id, req.user.username, row.id);
+            console.log(`DEBUG: /fractal - Proceeding with existing fractal ID: ${row.id}`);
 
             let galleryEntry = await Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash);
 
