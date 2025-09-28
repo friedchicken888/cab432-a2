@@ -95,7 +95,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
 
             let s3Key;
             try {
-                s3Key = await s3Service.uploadFile(buffer, 'image/png', 'fractals');
+                s3Key = await s3Service.uploadFile(buffer, 'image/png', 'fractals', hash);
             } catch (uploadErr) {
 
                 return res.status(500).send("Failed to upload fractal image.");

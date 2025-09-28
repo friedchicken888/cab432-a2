@@ -80,9 +80,9 @@ const s3Service = {
     }
   },
 
-  async uploadFile(fileBuffer, contentType, folder = 'fractals') {
+  async uploadFile(fileBuffer, contentType, folder = 'fractals', fileName = null) {
     await s3ConfigInitialised;
-    const key = `${folder}/${uuidv4()}.png`;
+    const key = fileName ? `${folder}/${fileName}.png` : `${folder}/${uuidv4()}.png`;
     const params = {
       Bucket: BUCKET_NAME,
       Key: key,

@@ -2,16 +2,20 @@ const db = require('../database.js');
 const cacheService = require('../services/cacheService');
 
 exports.findFractalByHash = async (hash) => {
+    console.log("DEBUG: findFractalByHash - Searching for hash:", hash);
     const cacheKey = `fractal:hash:${hash}`;
     let cachedFractal = await cacheService.get(cacheKey);
 
     if (cachedFractal) {
+        console.log("DEBUG: findFractalByHash - Cache hit for hash:", hash, ", cachedFractal.id:", cachedFractal.id);
         // Verify if the cached fractal still exists in the database
         const dbFractal = await exports.getFractalById(cachedFractal.id);
         if (dbFractal) {
+            console.log("DEBUG: findFractalByHash - Cached fractal verified in DB.");
             return dbFractal; // Cached entry is valid and exists in DB
         } else {
             // Cached entry is stale, remove it
+            console.log("DEBUG: findFractalByHash - Cached fractal is stale, removing from cache.");
             await cacheService.del(cacheKey);
             cachedFractal = null; // Force DB lookup
         }
@@ -24,7 +28,10 @@ exports.findFractalByHash = async (hash) => {
             if (err) return reject(err);
             const fractal = result.rows[0];
             if (fractal) {
+                console.log("DEBUG: findFractalByHash - Found in DB, id:", fractal.id);
                 cacheService.set(cacheKey, fractal, 3600);
+            } else {
+                console.log("DEBUG: findFractalByHash - Not found in DB.");
             }
             resolve(fractal);
         });
