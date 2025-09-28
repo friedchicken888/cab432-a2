@@ -43,6 +43,8 @@ router.get('/fractal', verifyToken, async (req, res) => {
             const dbFractal = await Fractal.getFractalById(row.id);
             if (!dbFractal) {
                 console.warn(`WARN: Cached fractal ID ${row.id} not found in database. Treating as new fractal.`);
+                // Invalidate the stale cache entry
+                await cacheService.del(`fractal:hash:${hash}`);
                 row = null; // Treat as if fractal was not found
             }
         }
