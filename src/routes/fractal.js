@@ -108,25 +108,9 @@ router.get('/fractal', verifyToken, async (req, res) => {
             await History.createHistoryEntry(req.user.id, req.user.username, result.id);
 
             const newGalleryId = await Gallery.addToGallery(req.user.id, result.id, hash);
-            // Invalidate all possible cache keys for the user's gallery
-            const commonFilters = [{}, { colourScheme: 'viridis' }, { power: 2 }, { iterations: 100 }];
-            const commonSortBys = ['added_at', 'hash'];
-            const commonSortOrders = ['ASC', 'DESC'];
-            const commonLimits = [5, 10, 20];
-            const commonOffsets = [0, 5, 10];
-
-            for (const filter of commonFilters) {
-                for (const sortBy of commonSortBys) {
-                    for (const sortOrder of commonSortOrders) {
-                        for (const limit of commonLimits) {
-                            for (const offset of commonOffsets) {
-                                const userCacheKey = generateCacheKey(req.user.id, filter, sortBy, sortOrder, limit, offset);
-                                await cacheService.del(userCacheKey);
-                            }
-                        }
-                    }
-                }
-            }
+            // Invalidate the default cache key for the user's gallery
+            const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
+            await cacheService.del(userCacheKey);
 
             const fractalUrl = await s3Service.getPresignedUrl(s3Key);
             res.json({ hash, url: fractalUrl, galleryId: newGalleryId });
