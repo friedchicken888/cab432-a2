@@ -32,57 +32,37 @@ router.get('/fractal', verifyToken, async (req, res) => {
 
     const hash = crypto.createHash('sha256').update(JSON.stringify(options)).digest('hex');
 
-
-    Fractal.findFractalByHash(hash, async (err, row) => {
-        if (err) {
-            console.error("Error finding fractal by hash:", err);
-            return res.status(500).send("Database error");
-        }
+    try {
+        let row = await Fractal.findFractalByHash(hash);
 
         if (row) {
+            // Fractal found in DB (or cache)
+            await History.createHistoryEntry(req.user.id, req.user.username, row.id);
 
-            History.createHistoryEntry(req.user.id, req.user.username, row.id, (err) => {
-                if (err) {
-                    console.error("Error creating history entry:", err);
-                }
-            });
+            let galleryEntry = await Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash);
 
+            let galleryId;
+            if (galleryEntry) {
+                galleryId = galleryEntry.id;
+            } else {
+                galleryId = await Gallery.addToGallery(req.user.id, row.id, row.hash);
+            }
 
-            Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash, async (err, galleryEntry) => {
-                if (err) {
-                    console.error("Error finding gallery entry by fractal hash and user ID:", err);
-                    return res.status(500).send("Database error");
-                }
+            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
+            return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
 
-                let galleryId;
-                if (galleryEntry) {
-                    galleryId = galleryEntry.id;
-                    const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
-                    return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
-                } else {
-
-                    Gallery.addToGallery(req.user.id, row.id, row.hash, async (err, newGalleryId) => {
-                        if (err) {
-                            console.error("Error adding to gallery:", err);
-                            return res.status(500).send("Database error");
-                        }
-                        galleryId = newGalleryId;
-                        const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
-                        return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
-                    });
-                }
-            });
         } else {
+            // Fractal not found, generate a new one
             isGenerating = true;
             let buffer;
             try {
                 buffer = await generateFractal(options);
             } catch (err) {
-                isGenerating = false;
                 console.error(err);
                 return res.status(500).send('Fractal generation failed');
+            } finally {
+                isGenerating = false;
             }
-            isGenerating = false;
 
             if (!buffer) {
                 return res.status(499).send('Fractal generation aborted due to time limit.');
@@ -98,32 +78,19 @@ router.get('/fractal', verifyToken, async (req, res) => {
 
             const fractalData = { ...options, hash, s3Key };
 
+            const result = await Fractal.createFractal(fractalData);
 
-            Fractal.createFractal(fractalData, (err, result) => {
-                if (err) {
-                    console.error("Error creating fractal:", err);
-                    return res.status(500).send("Failed to save fractal.");
-                }
+            await History.createHistoryEntry(req.user.id, req.user.username, result.id);
 
+            const newGalleryId = await Gallery.addToGallery(req.user.id, result.id, hash);
 
-                History.createHistoryEntry(req.user.id, req.user.username, result.id, (err) => {
-                    if (err) {
-                        console.error("Error creating history entry after fractal creation:", err);
-                    }
-                });
-
-                Gallery.addToGallery(req.user.id, result.id, hash, async (err, newGalleryId) => {
-                    if (err) {
-                        console.error("Error adding to gallery after fractal creation:", err);
-                        return res.status(500).send("Database error");
-                    }
-
-                    const fractalUrl = await s3Service.getPresignedUrl(s3Key);
-                    res.json({ hash, url: fractalUrl, galleryId: newGalleryId });
-                });
-            });
+            const fractalUrl = await s3Service.getPresignedUrl(s3Key);
+            res.json({ hash, url: fractalUrl, galleryId: newGalleryId });
         }
-    });
+    } catch (error) {
+        console.error("Error in /fractal route:", error);
+        res.status(500).send("Internal server error");
+    }
 });
 
 module.exports = router;
