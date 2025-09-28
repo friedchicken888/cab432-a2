@@ -4,10 +4,13 @@ const util = require("node:util");
 const memcachedAddress = process.env.MEMCACHED_ADDRESS;
 let memcachedClient = null;
 
+console.log(`DEBUG: MEMCACHED_ADDRESS from environment: ${memcachedAddress}`);
+
 if (!memcachedAddress) {
     console.warn("MEMCACHED_ADDRESS environment variable is not set. Caching will be disabled.");
 } else {
     memcachedClient = new Memcached(memcachedAddress);
+    console.log("DEBUG: Memcached client initialized.");
 
     memcachedClient.on("failure", (details) => {
         console.error("Memcached server failure:", details);

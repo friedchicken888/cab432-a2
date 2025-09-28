@@ -204,13 +204,17 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
     if sortBy: query_params["sortBy"] = sortBy
     if sortOrder: query_params["sortOrder"] = sortOrder
 
-    clear_terminal()
+    # clear_terminal() # Temporarily commented out for debugging
 
     headers = {"Authorization": f"Bearer {current_token}"}
+    print(f"\nDEBUG: Calling API: {BASE_URL}{endpoint}")
+    print(f"DEBUG: Query Params: {query_params}")
+    print(f"DEBUG: Headers: {headers}")
     try:
         r = requests.get(f"{BASE_URL}{endpoint}", headers=headers, params=query_params)
         r.raise_for_status()
         response_data = r.json()
+        print(f"DEBUG: API Response: {json.dumps(response_data, indent=2)}")
         data = response_data.get('data', [])
         total_count = int(response_data.get('totalCount', len(data)))
         current_limit = response_data.get('limit', len(data))
@@ -306,10 +310,12 @@ def view_data(view_type="my_gallery", limit=None, offset=None, filters=None, sor
             input("Press Enter to continue...")
             return {'data': [], 'totalCount': total_count, 'limit': current_limit, 'offset': current_offset, 'filters': filters, 'sortBy': sortBy, 'sortOrder': sortOrder}
     except requests.exceptions.RequestException as e:
-        print(f"Failed to retrieve {title.lower()}: {e}")
+        print(f"\nFailed to retrieve {title.lower()}: {e}")
         if e.response is not None:
             print(f"HTTP Status Code: {e.response.status_code}")
             print(f"Response Body: {e.response.text}")
+        else:
+            print(f"No HTTP response received. Error: {e}")
         input("Press Enter to continue...")
         return
 
