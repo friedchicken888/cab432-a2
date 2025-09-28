@@ -5,6 +5,8 @@ const Gallery = require('../models/gallery.model.js');
 const cacheService = require('../services/cacheService');
 const s3Service = require('../services/s3Service');
 
+console.log("DEBUG: gallery.js file loaded.");
+
 const generateCacheKey = (userId, filters, sortBy, sortOrder, limit, offset) => {
     return `gallery:${userId}:${JSON.stringify(filters)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
 };

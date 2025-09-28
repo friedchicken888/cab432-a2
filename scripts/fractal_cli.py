@@ -408,8 +408,9 @@ def user_menu():
         print("3. View All History (Admin)")
         print("4. View All Gallery (Admin)")
         print("5. Delete Gallery Entry")
-        print("6. Logout")
-        print("7. Exit")
+        print("6. Test API Endpoint")
+        print("7. Logout")
+        print("8. Exit")
 
         print()
         choice = input("Enter your choice: ")
@@ -524,18 +525,39 @@ def user_menu():
             input("\nPress Enter to continue...")
             
         elif choice == "6":
+            test_api_endpoint()
+            input("\nPress Enter to continue...")
+
+        elif choice == "7":
             current_user_info = None
             current_token = None
             print("\nLogged out successfully.")
             input("Press Enter to continue...")
             break
-        elif choice == "7":
+        elif choice == "8":
             clear_terminal()
             print("\nExiting CLI. Goodbye!")
             exit()
         else:
             print("\nInvalid choice. Please try again.")
             input("Press Enter to continue...")
+
+def test_api_endpoint():
+    if not current_token:
+        print("Please log in first.")
+        return
+
+    headers = {"Authorization": f"Bearer {current_token}"}
+    try:
+        print(f"\nDEBUG: Calling API: {BASE_URL}/test")
+        r = requests.get(f"{BASE_URL}/test", headers=headers)
+        r.raise_for_status()
+        print(f"API Response: {r.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to call test endpoint: {e}")
+        if e.response is not None:
+            print(f"HTTP Status Code: {e.response.status_code}")
+            print(f"Response Body: {e.response.text}")
 
 def main_menu():
     global BASE_URL
