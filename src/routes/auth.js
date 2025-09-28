@@ -1,5 +1,5 @@
 const express = require('express');
-const { CognitoIdentityProviderClient, SignUpCommand, ConfirmSignUpCommand, InitiateAuthCommand } = require('@aws-sdk/client-cognito-identity-provider');
+const { CognitoIdentityProviderClient, SignUpCommand, ConfirmSignUpCommand, InitiateAuthCommand, RespondToAuthChallengeCommand } = require('@aws-sdk/client-cognito-identity-provider');
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
 const crypto = require('crypto');
 const awsConfigService = require('../services/awsConfigService');
@@ -158,6 +158,54 @@ router.post('/login', async (req, res) => {
 
     try {
         const command = new InitiateAuthCommand(params);
+        const response = await cognitoClient.send(command);
+
+        if (response.ChallengeName === 'EMAIL_OTP') {
+            return res.status(202).json({
+                challengeName: response.ChallengeName,
+                session: response.Session,
+                challengeParameters: response.ChallengeParameters,
+            });
+        }
+
+        res.json({
+            idToken: response.AuthenticationResult.IdToken,
+            accessToken: response.AuthenticationResult.AccessToken,
+            expiresIn: response.AuthenticationResult.ExpiresIn,
+            tokenType: response.AuthenticationResult.TokenType,
+        });
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+router.post('/confirm-mfa', async (req, res) => {
+    const POOL_REGION = await awsConfigService.getParameter('/n11051337/aws_region');
+    if (!POOL_REGION) {
+        console.error('Failed to retrieve POOL_REGION from Parameter Store. Exiting application.');
+        process.exit(1);
+    }
+    const cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
+
+    const { username, mfaCode, session } = req.body;
+
+    if (!username || !mfaCode || !session) {
+        return res.status(400).send('Username, MFA code, and session are required.');
+    }
+
+    const params = {
+        ChallengeName: 'EMAIL_OTP',
+        ClientId: CLIENT_ID,
+        ChallengeResponses: {
+            USERNAME: username,
+            EMAIL_OTP_CODE: mfaCode,
+            SECRET_HASH: await secretHash(CLIENT_ID, username),
+        },
+        Session: session,
+    };
+
+    try {
+        const command = new RespondToAuthChallengeCommand(params);
         const response = await cognitoClient.send(command);
         res.json({
             idToken: response.AuthenticationResult.IdToken,

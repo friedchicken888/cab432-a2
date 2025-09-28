@@ -18,6 +18,12 @@ def login(username, password):
         r = requests.post(f"{BASE_URL}/auth/login", json={"username": username, "password": password})
         r.raise_for_status()
         data = r.json()
+
+        if r.status_code == 202 and data.get('challengeName') == 'EMAIL_OTP':
+            print("MFA challenge initiated. Please check your email for a verification code.")
+            mfa_code = input("Enter MFA code: ")
+            return confirm_mfa(username, mfa_code, data['session'])
+
         current_token = data['idToken']
         
         decoded_token = jwt.decode(current_token, options={"verify_signature": False}) 
@@ -27,6 +33,28 @@ def login(username, password):
         return True
     except requests.exceptions.RequestException as e:
         print(f"Login failed: {e}")
+        if e.response is not None:
+            print(f"HTTP Status Code: {e.response.status_code}")
+            print(f"Response Body: {e.response.text}")
+        current_token = None
+        current_user_info = None
+        return False
+
+def confirm_mfa(username, mfa_code, session):
+    global current_token, current_user_info
+    try:
+        r = requests.post(f"{BASE_URL}/auth/confirm-mfa", json={"username": username, "mfaCode": mfa_code, "session": session})
+        r.raise_for_status()
+        data = r.json()
+        current_token = data['idToken']
+        
+        decoded_token = jwt.decode(current_token, options={"verify_signature": False}) 
+        current_user_info = decoded_token
+        
+        print(f"Logged in as {current_user_info.get('cognito:username', username)}.")
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"MFA confirmation failed: {e}")
         if e.response is not None:
             print(f"HTTP Status Code: {e.response.status_code}")
             print(f"Response Body: {e.response.text}")
