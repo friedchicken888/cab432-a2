@@ -72,6 +72,11 @@ router.get('/fractal', verifyToken, async (req, res) => {
                 console.log(`DEBUG: /fractal - About to delete gallery cache for user ${req.user.id}`);
                 const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
                 await cacheService.del(userCacheKey);
+
+                // Invalidate the default cache key for the admin gallery
+                console.log(`DEBUG: /fractal - About to delete admin gallery cache`);
+                const adminCacheKey = `admin:gallery:${JSON.stringify({})}:added_at:DESC:5:0`;
+                await cacheService.del(adminCacheKey);
             }
 
             const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
@@ -113,6 +118,11 @@ router.get('/fractal', verifyToken, async (req, res) => {
             console.log(`DEBUG: /fractal - About to delete gallery cache for user ${req.user.id}`);
             const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
             await cacheService.del(userCacheKey);
+
+            // Invalidate the default cache key for the admin gallery
+            console.log(`DEBUG: /fractal - About to delete admin gallery cache`);
+            const adminCacheKey = `admin:gallery:${JSON.stringify({})}:added_at:DESC:5:0`;
+            await cacheService.del(adminCacheKey);
 
             const fractalUrl = await s3Service.getPresignedUrl(s3Key);
             res.json({ hash, url: fractalUrl, galleryId: newGalleryId });
