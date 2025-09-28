@@ -103,21 +103,17 @@ const s3Service = {
   },
 
   async getPresignedUrl(key, expiresSeconds = 300) {
-    console.log(`DEBUG: getPresignedUrl called for key: ${key}`);
     await s3ConfigInitialised;
     const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
     });
     try {
-      console.log("DEBUG: getPresignedUrl - Getting S3 client...");
       const s3Client = await getS3Client();
-      console.log("DEBUG: getPresignedUrl - S3 client obtained. Generating signed URL...");
       const url = await getSignedUrl(s3Client, command, { expiresIn: expiresSeconds });
-      console.log("DEBUG: getPresignedUrl - Signed URL generated.");
       return url;
     } catch (error) {
-      console.error('DEBUG: Error generating pre-signed URL:', error);
+      console.error('Error generating pre-signed URL:', error);
       throw new Error('Failed to generate pre-signed URL.');
     }
   },
