@@ -19,13 +19,6 @@ app.use('/fractals', express.static('fractals'));
 app.use('/api/auth', authRouter);
 app.use('/api', fractalRouter);
 app.use('/api', historyRouter);
-
-// Temporary test route
-app.get('/api/test', verifyToken, (req, res) => {
-  console.log("DEBUG: /api/test route hit!");
-  res.send("Hello from test route!");
-});
-
 app.use('/api', galleryRouter);
 
 (async () => {

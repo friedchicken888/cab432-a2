@@ -48,30 +48,23 @@ async function initialiseIdVerifier() {
 initialiseIdVerifier();
 
 async function verifyToken(req, res, next) {
-    console.log("DEBUG: verifyToken middleware entered.");
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        console.log("DEBUG: No token provided.");
         return res.status(401).send('Access denied. No token provided.');
     }
 
     try {
-        console.log("DEBUG: Attempting to verify token...");
-        console.log("DEBUG: Token received (first 10 chars):", token ? token.substring(0, 10) + "..." : "No token");
         const payload = await idVerifier.verify(token);
-        console.log("DEBUG: Token verified successfully. Payload:", payload);
         req.user = {
             id: payload.sub,
             username: payload['cognito:username'],
             email: payload.email,
             role: (payload['cognito:groups'] && payload['cognito:groups'].includes('admin')) ? 'admin' : 'user'
         };
-        console.log("DEBUG: req.user populated. Calling next()...");
         next();
     } catch (err) {
-        console.error("DEBUG: Token verification failed:", err);
         res.status(403).send('Invalid token.');
     }
 }
