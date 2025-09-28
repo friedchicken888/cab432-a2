@@ -58,10 +58,7 @@ exports.deleteFractal = async (id) => {
         const sql = "DELETE FROM fractals WHERE id = $1";
         db.query(sql, [id], (err, result) => {
             if (err) return reject(err);
-            // Invalidate cache entries
             cacheService.del(`fractal:id:${id}:s3key`);
-            // Note: We don't have the hash here, so we can't invalidate fractal:hash:${hash}
-            // If needed, we'd fetch the fractal by ID first to get its hash before deleting.
             resolve(result);
         });
     });

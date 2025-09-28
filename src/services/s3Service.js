@@ -46,7 +46,6 @@ const s3Service = {
     let s3Client;
     try {
       s3Client = await getS3Client();
-      // Check if bucket exists
       await s3Client.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }));
     } catch (error) {
       if (error.name === 'NotFound' || error.name === 'NoSuchBucket') {
@@ -62,7 +61,6 @@ const s3Service = {
       }
     }
 
-    // Apply tags
     if (QUT_USERNAME && PURPOSE) {
       try {
         await s3Client.send(new PutBucketTaggingCommand({
@@ -93,11 +91,12 @@ const s3Service = {
       ACL: 'private',
     };
 
-          try {
-          const s3Client = await getS3Client();
-          const command = new PutObjectCommand(params);
-          await s3Client.send(command);
-          return key;    } catch (error) {
+    try {
+      const s3Client = await getS3Client();
+      const command = new PutObjectCommand(params);
+      await s3Client.send(command);
+      return key;
+    } catch (error) {
       console.error('Error uploading file to S3:', error);
       throw new Error('Failed to upload file to S3.');
     }

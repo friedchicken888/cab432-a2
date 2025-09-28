@@ -39,7 +39,6 @@ router.get('/fractal', verifyToken, async (req, res) => {
 
         if (row) {
             console.log(`DEBUG: /fractal - Existing fractal found with ID: ${row.id}`);
-            // Fractal found in DB (or cache)
             await History.createHistoryEntry(req.user.id, req.user.username, row.id);
 
             let galleryEntry = await Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash);
@@ -59,7 +58,6 @@ router.get('/fractal', verifyToken, async (req, res) => {
 
         } else {
             console.log(`DEBUG: /fractal - Fractal not found. Generating new one.`);
-            // Fractal not found, generate a new one
             isGenerating = true;
             let buffer;
             try {

@@ -339,6 +339,43 @@ def delete_gallery_entry():
             print(f"HTTP Status Code: {e.response.status_code}")
             print(f"Response Body: {e.response.text}")
 
+def quick_login():
+    global current_token, current_user_info
+    clear_terminal()
+    print("\n--- Quick Login ---")
+    print("1. Login as Regular User")
+    print("2. Login as Admin")
+    choice = input("\nEnter your choice: ")
+
+    username = ""
+    password = ""
+
+    if choice == "1":
+        username = os.getenv('USER_USERNAME')
+        password = os.getenv('USER_PASSWORD')
+        if not username or not password:
+            print("Error: USER_USERNAME or USER_PASSWORD not set in .env")
+            input("Press Enter to continue...")
+            return
+    elif choice == "2":
+        username = os.getenv('ADMIN_USERNAME')
+        password = os.getenv('ADMIN_PASSWORD')
+        if not username or not password:
+            print("Error: ADMIN_USERNAME or ADMIN_PASSWORD not set in .env")
+            input("Press Enter to continue...")
+            return
+    else:
+        print("Invalid choice.")
+        input("Press Enter to continue...")
+        return
+
+    if login(username, password):
+        user_menu()
+        current_user_info = None
+        current_token = None
+    else:
+        input("\nPress Enter to continue...")
+
 def auth_menu():
     global current_user_info, current_token
     while True:
@@ -347,7 +384,8 @@ def auth_menu():
         print("1. Login")
         print("2. Sign Up")
         print("3. Confirm Sign Up")
-        print("4. Exit")
+        print("4. Quick Login")
+        print("5. Exit")
         choice = input("\nEnter your choice: ")
 
         if choice == "1":
@@ -377,6 +415,8 @@ def auth_menu():
             confirm_signup(username, confirmation_code)
             input("\nPress Enter to continue...")
         elif choice == "4":
+            quick_login()
+        elif choice == "5":
             clear_terminal()
             print("\nExiting CLI. Goodbye!")
             break
@@ -417,6 +457,7 @@ def user_menu():
         elif choice == "2":
             current_limit = None
             current_offset = 0
+            clear_terminal()
             print("\n--- View My Gallery ---")
             
             use_options_input = input("Do you want to apply filters, sorting, or pagination? (y/n): ").lower()

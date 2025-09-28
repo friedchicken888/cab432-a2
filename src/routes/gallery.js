@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('./auth.js');
 const Gallery = require('../models/gallery.model.js');
-const Fractal = require('../models/fractal.model.js'); // Added import
+const Fractal = require('../models/fractal.model.js');
 const cacheService = require('../services/cacheService');
-const s3Service = require('../services/s3Service'); // Added import
+const s3Service = require('../services/s3Service');
 
 const generateCacheKey = (userId, filters, sortBy, sortOrder, limit, offset) => {
     return `gallery:${userId}:${JSON.stringify(filters)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
@@ -82,10 +82,8 @@ router.delete('/gallery/:id', verifyToken, async (req, res) => {
         const userGalleryCacheKey = generateCacheKey(userId, {}, null, null, null, null);
         await cacheService.del(userGalleryCacheKey);
 
-        if (isAdmin) {
-            const adminGalleryCacheKey = `admin:gallery:${JSON.stringify({})}:null:null:null:null`;
-            await cacheService.del(adminGalleryCacheKey);
-        }
+        const defaultAdminGalleryCacheKey = `admin:gallery:${JSON.stringify({})}:null:null:null:null`;
+        await cacheService.del(defaultAdminGalleryCacheKey);
 
         const countRow = await Gallery.countGalleryByFractalHash(fractalHash);
 

@@ -47,6 +47,7 @@ exports.countHistoryByFractalId = (fractalId) => {
 };
 
 exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset) => {
+    console.log("DEBUG: History.getAllHistory called with:", { filters, sortBy, sortOrder, limit, offset });
     return new Promise((resolve, reject) => {
         let whereClauses = [];
         let params = [];
@@ -80,9 +81,15 @@ exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset) => {
         const order = (sortOrder && sortOrder.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
 
         const countSql = `SELECT COUNT(*) as "totalCount" FROM history h LEFT JOIN fractals f ON h.fractal_id = f.id ${whereSql}`;
+        console.log("DEBUG: Executing countSql:", countSql, "with params:", params);
         db.query(countSql, params, (err, countResult) => {
-            if (err) return reject(err);
+            console.log("DEBUG: countSql callback invoked.");
+            if (err) {
+                console.error("DEBUG: Error in countSql:", err);
+                return reject(err);
+            }
             const totalCount = parseInt(countResult.rows[0].totalCount);
+            console.log("DEBUG: totalCount:", totalCount);
 
             const dataSql = `
                 SELECT h.id, h.user_id, h.username, f.hash, f.width, f.height, f.iterations, f.power, f.c_real, f.c_imag, f.scale, f."offsetX", f."offsetY", f."colourScheme", h.generated_at, f.s3_key, (f.id IS NULL) AS fractal_deleted
@@ -92,8 +99,15 @@ exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset) => {
                 ORDER BY ${sortColumn} ${order}
                 LIMIT $${paramIndex++} OFFSET $${paramIndex++}
             `;
-            db.query(dataSql, [...params, limit, offset], (err, dataResult) => {
-                if (err) return reject(err);
+            const dataParams = [...params, limit, offset];
+            console.log("DEBUG: Executing dataSql:", dataSql, "with params:", dataParams);
+            db.query(dataSql, dataParams, (err, dataResult) => {
+                console.log("DEBUG: dataSql callback invoked.");
+                if (err) {
+                    console.error("DEBUG: Error in dataSql:", err);
+                    return reject(err);
+                }
+                console.log(`DEBUG: dataSql returned ${dataResult.rows.length} rows.`);
                 resolve({ rows: dataResult.rows, totalCount: totalCount });
             });
         });
