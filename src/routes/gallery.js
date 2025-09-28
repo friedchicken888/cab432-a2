@@ -79,40 +79,13 @@ router.delete('/gallery/:id', verifyToken, async (req, res) => {
 
         await Gallery.deleteGalleryEntry(galleryId, userId, isAdmin);
 
-        // Invalidate all possible cache keys for the user's gallery
-        // This is a workaround for not having wildcard deletion in cacheService
-        const commonFilters = [{}, { colourScheme: 'viridis' }, { power: 2 }, { iterations: 100 }];
-        const commonSortBys = ['added_at', 'hash'];
-        const commonSortOrders = ['ASC', 'DESC'];
-        const commonLimits = [5, 10, 20];
-        const commonOffsets = [0, 5, 10];
+        // Invalidate the default cache key for the user's gallery
+        const userCacheKey = generateCacheKey(userId, {}, 'added_at', 'DESC', 5, 0);
+        await cacheService.del(userCacheKey);
 
-        for (const filter of commonFilters) {
-            for (const sortBy of commonSortBys) {
-                for (const sortOrder of commonSortOrders) {
-                    for (const limit of commonLimits) {
-                        for (const offset of commonOffsets) {
-                            const userCacheKey = generateCacheKey(userId, filter, sortBy, sortOrder, limit, offset);
-                            await cacheService.del(userCacheKey);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Invalidate all possible cache keys for the admin gallery
-        for (const filter of commonFilters) {
-            for (const sortBy of commonSortBys) {
-                for (const sortOrder of commonSortOrders) {
-                    for (const limit of commonLimits) {
-                        for (const offset of commonOffsets) {
-                            const adminCacheKey = `admin:gallery:${JSON.stringify(filter)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
-                            await cacheService.del(adminCacheKey);
-                        }
-                    }
-                }
-            }
-        }
+        // Invalidate the default cache key for the admin gallery
+        const adminCacheKey = `admin:gallery:${JSON.stringify({})}:added_at:DESC:5:0`;
+        await cacheService.del(adminCacheKey);
 
         const countRow = await Gallery.countGalleryByFractalHash(fractalHash);
 

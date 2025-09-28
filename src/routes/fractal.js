@@ -69,6 +69,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
             } else {
                 galleryId = await Gallery.addToGallery(req.user.id, row.id, row.hash);
                 // Invalidate the default cache key for the user's gallery
+                console.log(`DEBUG: /fractal - About to delete gallery cache for user ${req.user.id}`);
                 const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
                 await cacheService.del(userCacheKey);
             }
@@ -109,6 +110,7 @@ router.get('/fractal', verifyToken, async (req, res) => {
 
             const newGalleryId = await Gallery.addToGallery(req.user.id, result.id, hash);
             // Invalidate the default cache key for the user's gallery
+            console.log(`DEBUG: /fractal - About to delete gallery cache for user ${req.user.id}`);
             const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
             await cacheService.del(userCacheKey);
 
