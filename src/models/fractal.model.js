@@ -3,11 +3,21 @@ const cacheService = require('../services/cacheService');
 
 exports.findFractalByHash = async (hash) => {
     const cacheKey = `fractal:hash:${hash}`;
-    const cachedFractal = await cacheService.get(cacheKey);
+    let cachedFractal = await cacheService.get(cacheKey);
+
     if (cachedFractal) {
-        return cachedFractal;
+        // Verify if the cached fractal still exists in the database
+        const dbFractal = await exports.getFractalById(cachedFractal.id);
+        if (dbFractal) {
+            return dbFractal; // Cached entry is valid and exists in DB
+        } else {
+            // Cached entry is stale, remove it
+            await cacheService.del(cacheKey);
+            cachedFractal = null; // Force DB lookup
+        }
     }
 
+    // If not in cache, or cache was stale, query the database
     return new Promise((resolve, reject) => {
         const sql = "SELECT id, hash, width, height, iterations, power, c_real, c_imag, scale, \"offsetX\", \"offsetY\", \"colourScheme\", s3_key FROM fractals WHERE hash = $1";
         db.query(sql, [hash], (err, result) => {
