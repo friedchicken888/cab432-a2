@@ -6,13 +6,24 @@ const secretManagerService = require('../services/secretManagerService');
 
 const router = express.Router();
 
-const POOL_REGION = process.env.AWS_REGION;
+let POOL_REGION;
 const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
 const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
 
-const cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
+let cognitoClient;
+
+async function initialiseAuthClients() {
+    if (POOL_REGION) return;
+    POOL_REGION = await secretManagerService.getParameter('/n11051337/aws_region');
+    if (!POOL_REGION) {
+        console.error('Failed to retrieve POOL_REGION from Parameter Store. Exiting application.');
+        process.exit(1);
+    }
+    cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
+}
 
 async function secretHash(clientId, username) {
+    await initialiseAuthClients();
     const clientSecret = await secretManagerService.getCognitoClientSecret();
     const hasher = crypto.createHmac('sha256', clientSecret);
     hasher.update(`${username}${clientId}`);
@@ -48,6 +59,7 @@ async function verifyToken(req, res, next) {
 }
 
 router.post('/signup', async (req, res) => {
+    await initialiseAuthClients();
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
@@ -72,6 +84,7 @@ router.post('/signup', async (req, res) => {
 });
 
 router.post('/confirm', async (req, res) => {
+    await initialiseAuthClients();
     const { username, confirmationCode } = req.body;
 
     if (!username || !confirmationCode) {
@@ -95,6 +108,7 @@ router.post('/confirm', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
+    await initialiseAuthClients();
     const { username, password } = req.body;
 
     if (!username || !password) {

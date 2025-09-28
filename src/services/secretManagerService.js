@@ -1,12 +1,30 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 
-const region = process.env.AWS_REGION || "ap-southeast-2";
-const secretsManagerClient = new SecretsManagerClient({ region: region });
-const ssmClient = new SSMClient({ region: region });
+let cachedAwsRegion = null;
+let cachedSecretsManagerClient = null;
+let cachedSsmClient = null;
 
 let jwtSecret = null;
 let cognitoClientSecret = null;
+
+async function getAwsRegion() {
+    if (cachedAwsRegion) {
+        return cachedAwsRegion;
+    }
+    try {
+        const regionParam = await module.exports.getParameter('/n11051337/aws_region');
+        if (!regionParam) {
+            console.error('Failed to retrieve AWS_REGION from Parameter Store. Exiting application.');
+            process.exit(1);
+        }
+        cachedAwsRegion = regionParam;
+        return cachedAwsRegion;
+    } catch (error) {
+        console.error('Error fetching AWS_REGION from Parameter Store:', error);
+        process.exit(1);
+    }
+}
 
 module.exports = {
     getJwtSecret: async () => {
@@ -14,9 +32,14 @@ module.exports = {
             return jwtSecret;
         }
 
+        const region = await getAwsRegion();
+        if (!cachedSecretsManagerClient) {
+            cachedSecretsManagerClient = new SecretsManagerClient({ region: region });
+        }
+
         try {
             const secret_name = "n11051337-A2-JWT";
-            const response = await secretsManagerClient.send(
+            const response = await cachedSecretsManagerClient.send(
                 new GetSecretValueCommand({
                     SecretId: secret_name
                 })
@@ -40,9 +63,14 @@ module.exports = {
             return cognitoClientSecret;
         }
 
+        const region = await getAwsRegion();
+        if (!cachedSecretsManagerClient) {
+            cachedSecretsManagerClient = new SecretsManagerClient({ region: region });
+        }
+
         try {
             const secret_name = "n11051337-A2-Cognito";
-            const response = await secretsManagerClient.send(
+            const response = await cachedSecretsManagerClient.send(
                 new GetSecretValueCommand({
                     SecretId: secret_name
                 })
@@ -62,12 +90,17 @@ module.exports = {
         return null;
     },
     getParameter: async (parameterName) => {
+        const region = await getAwsRegion();
+        if (!cachedSsmClient) {
+            cachedSsmClient = new SSMClient({ region: region });
+        }
+
         try {
             const command = new GetParameterCommand({
                 Name: parameterName,
                 WithDecryption: true,
             });
-            const response = await ssmClient.send(command);
+            const response = await cachedSsmClient.send(command);
             if (response.Parameter && response.Parameter.Value) {
                 return response.Parameter.Value;
             }
