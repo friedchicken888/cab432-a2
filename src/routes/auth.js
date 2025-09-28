@@ -48,6 +48,7 @@ async function initialiseIdVerifier() {
 initialiseIdVerifier();
 
 async function verifyToken(req, res, next) {
+    console.log("DEBUG: verifyToken middleware entered.");
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
