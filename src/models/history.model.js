@@ -21,7 +21,6 @@ exports.createHistoryEntry = (userId, username, fractalId) => {
         const sql = "INSERT INTO history (user_id, username, fractal_id) VALUES ($1, $2, $3) RETURNING id";
         db.query(sql, [userId, username, fractalId], (err, result) => {
             if (err) return reject(err);
-            console.log("DEBUG: History entry created with ID:", result.rows[0].id);
             resolve({ id: result.rows[0].id });
         });
     });

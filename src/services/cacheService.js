@@ -5,7 +5,7 @@ const memcachedAddress = process.env.MEMCACHED_ADDRESS;
 let memcachedClient = null;
 
 if (!memcachedAddress) {
-    console.warn("MEMCACHED_ADDRESS environment variable is not set. Caching will be disabled.");
+    
 } else {
     memcachedClient = new Memcached(memcachedAddress);
 
@@ -13,13 +13,13 @@ if (!memcachedAddress) {
         console.error("Memcached server failure:", details);
     });
     memcachedClient.on("reconnecting", (details) => {
-        console.warn("Memcached client reconnecting:", details);
+
     });
     memcachedClient.on("issue", (details) => {
         console.error("Memcached issue:", details);
     });
     memcachedClient.on("remove", (details) => {
-        console.warn("Memcached server removed:", details);
+
     });
 
     memcachedClient.aGet = util.promisify(memcachedClient.get);
@@ -33,9 +33,9 @@ const cacheService = {
         try {
             const value = await memcachedClient.aGet(key);
             if (value) {
-                console.log(`Cache hit for key: ${key}`);
+
             } else {
-                console.log(`Cache miss for key: ${key}`);
+
             }
             return value;
         } catch (error) {
@@ -48,7 +48,7 @@ const cacheService = {
         if (!memcachedClient) return;
         try {
             await memcachedClient.aSet(key, value, ttl);
-            console.log(`Cache set for key: ${key} with TTL: ${ttl}`);
+
         } catch (error) {
             console.error("Error setting to Memcached:", error);
         }
@@ -58,7 +58,7 @@ const cacheService = {
         if (!memcachedClient) return;
         try {
             await memcachedClient.aDel(key);
-            console.log(`Cache deleted for key: ${key}`);
+
         } catch (error) {
             console.error("Error deleting from Memcached:", error);
         }

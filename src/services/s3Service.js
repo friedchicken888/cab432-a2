@@ -76,7 +76,7 @@ const s3Service = {
         console.error(`Error tagging S3 Bucket '${BUCKET_NAME}':`, tagError);
       }
     } else {
-      console.warn('S3_TAG_QUT_USERNAME or S3_TAG_PURPOSE not defined. S3 bucket will not be tagged programmatically.');
+
     }
   },
 

@@ -79,7 +79,6 @@ router.get('/fractal', verifyToken, async (req, res) => {
             return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
 
         } else { // fractal not found, generate new one
-            console.log("DEBUG: Generating new fractal...");
 
             let buffer;
             try {

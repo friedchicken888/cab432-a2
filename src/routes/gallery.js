@@ -86,13 +86,10 @@ router.delete('/gallery/:id', verifyToken, async (req, res) => {
         await cacheService.del(adminCacheKey);
 
         const countRow = await Gallery.countGalleryByFractalHash(fractalHash);
-        console.log("DEBUG: countRow.count for fractalHash", fractalHash, ":", countRow.count);
 
         if (parseInt(countRow.count) === 0) {
             const fractalRow = await Fractal.getFractalS3Key(fractalId);
-            console.log("DEBUG: fractalRow for fractalId", fractalId, ":", fractalRow);
             if (fractalRow && fractalRow.s3_key) {
-                console.log("DEBUG: s3_key to delete:", fractalRow.s3_key);
                 const s3KeyToDelete = fractalRow.s3_key;
                 await s3Service.deleteFile(s3KeyToDelete);
                 await Fractal.deleteFractal(fractalId);

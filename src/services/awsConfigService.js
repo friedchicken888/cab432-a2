@@ -52,7 +52,7 @@ module.exports = {
                 jwtSecret = secrets.JWT_SECRET;
                 return jwtSecret;
             } else {
-                console.log('response.SecretString was null or empty for JWT secret.');
+    
             }
         } catch (error) {
             console.error("Error retrieving JWT secret from AWS Secrets Manager:", error);
@@ -81,7 +81,7 @@ module.exports = {
                 cognitoClientSecret = secrets.AWS_COGNITO_CLIENT_SECRET;
                 return cognitoClientSecret;
             } else {
-                console.log('response.SecretString was null or empty.');
+    
             }
         } catch (error) {
             console.error("Error retrieving Cognito Client Secret from AWS Secrets Manager:", error);
