@@ -2,12 +2,23 @@ const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, Creat
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { v4: uuidv4 } = require('uuid');
 const dotenv = require('dotenv');
+const { getAwsRegion } = require("../services/secretManagerService");
 
 dotenv.config();
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-});
+let s3ClientInstance = null;
+
+async function getS3Client() {
+  if (s3ClientInstance) {
+    return s3ClientInstance;
+  }
+  const region = await getAwsRegion();
+  s3ClientInstance = new S3Client({
+    region: region,
+  });
+  return s3ClientInstance;
+}
+
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const QUT_USERNAME = process.env.S3_TAG_QUT_USERNAME;
@@ -21,6 +32,7 @@ const s3Service = {
     }
 
     try {
+      const s3Client = await getS3Client();
       // Check if bucket exists
       await s3Client.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }));
     } catch (error) {
@@ -75,6 +87,7 @@ const s3Service = {
     };
 
           try {
+          const s3Client = await getS3Client();
           const command = new PutObjectCommand(params);
           await s3Client.send(command);
           return key;    } catch (error) {
@@ -95,6 +108,7 @@ const s3Service = {
       Key: key,
     });
     try {
+      const s3Client = await getS3Client();
       const url = await getSignedUrl(s3Client, command, { expiresIn: expiresSeconds });
       return url;
     } catch (error) {
@@ -114,6 +128,7 @@ const s3Service = {
     };
 
     try {
+      const s3Client = await getS3Client();
       const command = new DeleteObjectCommand(params);
       await s3Client.send(command);
     } catch (error) {

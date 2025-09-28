@@ -30,6 +30,7 @@ async function getAwsRegion() {
 }
 
 module.exports = {
+    getAwsRegion,
     getJwtSecret: async () => {
         if (jwtSecret) {
             return jwtSecret;

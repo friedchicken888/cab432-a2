@@ -1,14 +1,14 @@
 const { Pool } = require('pg');
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
+const { getAwsRegion } = require("../services/secretManagerService");
 
 const secret_name = "n11051337-A2-DB";
-const region = "ap-southeast-2";
-
-const client = new SecretsManagerClient({ region: region });
 
 let dbSecrets = {};
 
 async function getDbSecrets() {
+    const region = await getAwsRegion();
+    const client = new SecretsManagerClient({ region: region });
     try {
         const response = await client.send(
             new GetSecretValueCommand({
