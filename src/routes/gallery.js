@@ -79,11 +79,40 @@ router.delete('/gallery/:id', verifyToken, async (req, res) => {
 
         await Gallery.deleteGalleryEntry(galleryId, userId, isAdmin);
 
-        const userGalleryCacheKey = generateCacheKey(userId, {}, null, null, null, null);
-        await cacheService.del(userGalleryCacheKey);
+        // Invalidate all possible cache keys for the user's gallery
+        // This is a workaround for not having wildcard deletion in cacheService
+        const commonFilters = [{}, { colourScheme: 'viridis' }, { power: 2 }, { iterations: 100 }];
+        const commonSortBys = ['added_at', 'hash'];
+        const commonSortOrders = ['ASC', 'DESC'];
+        const commonLimits = [5, 10, 20];
+        const commonOffsets = [0, 5, 10];
 
-        const defaultAdminGalleryCacheKey = `admin:gallery:${JSON.stringify({})}:null:null:null:null`;
-        await cacheService.del(defaultAdminGalleryCacheKey);
+        for (const filter of commonFilters) {
+            for (const sortBy of commonSortBys) {
+                for (const sortOrder of commonSortOrders) {
+                    for (const limit of commonLimits) {
+                        for (const offset of commonOffsets) {
+                            const userCacheKey = generateCacheKey(userId, filter, sortBy, sortOrder, limit, offset);
+                            await cacheService.del(userCacheKey);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Invalidate all possible cache keys for the admin gallery
+        for (const filter of commonFilters) {
+            for (const sortBy of commonSortBys) {
+                for (const sortOrder of commonSortOrders) {
+                    for (const limit of commonLimits) {
+                        for (const offset of commonOffsets) {
+                            const adminCacheKey = `admin:gallery:${JSON.stringify(filter)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
+                            await cacheService.del(adminCacheKey);
+                        }
+                    }
+                }
+            }
+        }
 
         const countRow = await Gallery.countGalleryByFractalHash(fractalHash);
 
@@ -142,6 +171,9 @@ router.get('/admin/gallery', verifyToken, async (req, res) => {
             totalCount,
             limit: parseInt(limit),
             offset: parseInt(offset),
+            filters,
+            sortBy,
+            sortOrder,
         };
 
         await cacheService.set(cacheKey, responseData);
