@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { initializeAuth } = require('./src/routes/auth');
+const { initialiseAuth } = require('./src/routes/auth');
 const fractalRouter = require('./src/routes/fractal');
 const historyRouter = require('./src/routes/history');
 
@@ -14,7 +14,7 @@ app.use('/fractals', express.static('fractals'));
 
 (async () => {
   try {
-    const { router: authRouter, verifyToken } = await initializeAuth();
+    const { router: authRouter, verifyToken } = await initialiseAuth();
     app.use('/api/auth', authRouter);
     app.use('/api', fractalRouter);
     app.use('/api', historyRouter);

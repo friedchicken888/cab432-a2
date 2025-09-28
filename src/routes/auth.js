@@ -21,7 +21,7 @@ function secretHash(clientId, clientSecret, username) {
     return hasher.digest('base64');
 }
 
-async function initializeAuth() {
+async function initialiseAuth() {
     jwtSecret = await secretManagerService.getJwtSecret();
     cognitoClientSecret = await secretManagerService.getCognitoClientSecret();
 
@@ -134,4 +134,5 @@ async function initializeAuth() {
     return { router, verifyToken };
 }
 
-module.exports = { initializeAuth };
+exports.router = router;
+exports.verifyToken = verifyToken;
