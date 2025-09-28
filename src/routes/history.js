@@ -31,19 +31,18 @@ router.get('/admin/history', verifyToken, async (req, res) => {
     const sortOrder = req.query.sortOrder;
 
     console.log("DEBUG: Calling History.getAllHistory...");
-    History.getAllHistory(filters, sortBy, sortOrder, limit, offset, async (err, rows, totalCount) => {
-        console.log("DEBUG: Callback from History.getAllHistory received.");
-        if (err) {
-            console.error("DEBUG: Error from History.getAllHistory:", err);
-            return res.status(500).send("Database error");
-        }
+    try {
+        const { rows, totalCount } = await History.getAllHistory(filters, sortBy, sortOrder, limit, offset);
         console.log(`DEBUG: History.getAllHistory returned ${rows.length} rows. Total: ${totalCount}`);
         const historyWithUrls = await Promise.all(rows.map(async row => {
             const fractalUrl = row.s3_key ? await s3Service.getPresignedUrl(row.s3_key) : null;
             return { ...row, url: fractalUrl };
         }));
         res.json({ data: historyWithUrls, totalCount, limit, offset, filters, sortBy, sortOrder });
-    });
+    } catch (err) {
+        console.error("DEBUG: Error from History.getAllHistory:", err);
+        return res.status(500).send("Database error");
+    }
 });
 
 module.exports = router;

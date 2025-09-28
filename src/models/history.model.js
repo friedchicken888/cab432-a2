@@ -108,7 +108,9 @@ exports.getAllHistory = (filters, sortBy, sortOrder, limit, offset) => {
                     return reject(err);
                 }
                 console.log(`DEBUG: dataSql returned ${dataResult.rows.length} rows.`);
+                console.log("DEBUG: About to resolve getAllHistory Promise.");
                 resolve({ rows: dataResult.rows, totalCount: totalCount });
+                console.log("DEBUG: getAllHistory Promise resolved.");
             });
         });
     });
