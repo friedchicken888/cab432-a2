@@ -1,7 +1,9 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
+const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 
 const region = process.env.AWS_REGION || "ap-southeast-2";
 const secretsManagerClient = new SecretsManagerClient({ region: region });
+const ssmClient = new SSMClient({ region: region });
 
 let jwtSecret = null;
 let cognitoClientSecret = null;
@@ -58,5 +60,21 @@ module.exports = {
             process.exit(1);
         }
         return null;
-    }
+    },
+    getParameter: async (parameterName) => {
+        try {
+            const command = new GetParameterCommand({
+                Name: parameterName,
+                WithDecryption: true,
+            });
+            const response = await ssmClient.send(command);
+            if (response.Parameter && response.Parameter.Value) {
+                return response.Parameter.Value;
+            }
+        } catch (error) {
+            console.error(`Error retrieving parameter ${parameterName} from AWS Parameter Store:`, error);
+            process.exit(1);
+        }
+        return null;
+    },
 };
