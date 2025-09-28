@@ -51,7 +51,7 @@ module.exports = {
             if (response.SecretString) {
                 const secrets = JSON.parse(response.SecretString);
                 console.log('Secrets object:', secrets); // Debug log
-                cognitoClientSecret = secrets.COGNITO_CLIENT_SECRET;
+                cognitoClientSecret = secrets.AWS_COGNITO_CLIENT_SECRET;
                 console.log('Retrieved cognitoClientSecret:', cognitoClientSecret); // Debug log
                 return cognitoClientSecret;
             } else {
