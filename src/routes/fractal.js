@@ -56,12 +56,14 @@ router.get('/fractal', verifyToken, async (req, res) => {
         }
 
         if (row) { // fractal found and verified
-            let galleryEntry = await Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash);
+            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
 
+            let galleryEntry = await Gallery.findGalleryEntryByFractalHashAndUserId(req.user.id, row.hash);
             let galleryId;
-            if (galleryEntry) {
-                galleryId = galleryEntry.id;
-            } else {
+
+            if (!galleryEntry) {
+                // If not in user's gallery, create history entry and add to gallery
+                await History.createHistoryEntry(req.user.id, req.user.username, row.id);
                 galleryId = await Gallery.addToGallery(req.user.id, row.id, row.hash);
                 // Invalidate the default cache key for the user's gallery
                 const userCacheKey = generateCacheKey(req.user.id, {}, 'added_at', 'DESC', 5, 0);
@@ -70,15 +72,15 @@ router.get('/fractal', verifyToken, async (req, res) => {
                 // Invalidate the default cache key for the admin gallery
                 const adminCacheKey = `admin:gallery:${JSON.stringify({})}:added_at:DESC:5:0`;
                 await cacheService.del(adminCacheKey);
+            } else {
+                galleryId = galleryEntry.id;
             }
 
-            const fractalUrl = await s3Service.getPresignedUrl(row.s3_key);
             return res.json({ hash: row.hash, url: fractalUrl, galleryId: galleryId });
 
         } else { // fractal not found, generate new one
             console.log("DEBUG: Generating new fractal...");
-            // Fractal not found, generate a new one
-            isGenerating = true;
+
             let buffer;
             try {
                 buffer = await generateFractal(options);
@@ -104,10 +106,11 @@ router.get('/fractal', verifyToken, async (req, res) => {
             const fractalData = { ...options, hash, s3Key };
 
             const result = await Fractal.createFractal(fractalData);
-            const createdFractal = await Fractal.findFractalByHash(hash); // Ensure fractal is committed and get its ID
+            const createdFractal = await Fractal.findFractalByHash(hash);
             if (!createdFractal) {
                 return res.status(500).send("Failed to retrieve newly created fractal.");
             }
+            // History and gallery addition for newly created fractal
             await History.createHistoryEntry(req.user.id, req.user.username, createdFractal.id);
             const newGalleryId = await Gallery.addToGallery(req.user.id, createdFractal.id, hash);
             // Invalidate the default cache key for the user's gallery
