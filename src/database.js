@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
-const { getAwsRegion } = require("../services/secretManagerService");
+const { getAwsRegion } = require("./services/awsConfigService");
 
 const secret_name = "n11051337-A2-DB";
 

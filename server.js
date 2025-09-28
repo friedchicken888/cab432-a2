@@ -1,11 +1,11 @@
-require('dotenv').config({ silent: true });
+
 const express = require('express');
 const { router: authRouter, verifyToken } = require('./src/routes/auth');
 const fractalRouter = require('./src/routes/fractal');
 const historyRouter = require('./src/routes/history');
 
 const s3Service = require('./src/services/s3Service');
-const secretManagerService = require('./src/services/secretManagerService');
+const awsConfigService = require('./src/services/awsConfigService');
 
 const app = express();
 let port;
@@ -19,7 +19,7 @@ app.use('/api', historyRouter);
 
 (async () => {
   try {
-    port = await secretManagerService.getParameter('/n11051337/port');
+    port = await awsConfigService.getParameter('/n11051337/port');
     if (!port) {
       console.error('Failed to retrieve port from Parameter Store. Exiting application.');
       process.exit(1);

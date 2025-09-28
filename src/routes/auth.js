@@ -2,32 +2,50 @@ const express = require('express');
 const { CognitoIdentityProviderClient, SignUpCommand, ConfirmSignUpCommand, InitiateAuthCommand } = require('@aws-sdk/client-cognito-identity-provider');
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
 const crypto = require('crypto');
-const secretManagerService = require('../services/secretManagerService');
+const awsConfigService = require('../services/awsConfigService');
 
 const router = express.Router();
 
-const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
-const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
+let USER_POOL_ID;
+let CLIENT_ID;
+
+async function initialiseCognitoConfig() {
+    USER_POOL_ID = await awsConfigService.getParameter('/n11051337/user_pool_id');
+    CLIENT_ID = await awsConfigService.getParameter('/n11051337/client_id');
+    if (!USER_POOL_ID || !CLIENT_ID) {
+        console.error('Failed to retrieve Cognito User Pool ID or Client ID from Parameter Store. Exiting application.');
+        process.exit(1);
+    }
+}
+
+initialiseCognitoConfig();
 
 async function secretHash(clientId, username) {
-    const POOL_REGION = await secretManagerService.getParameter('/n11051337/aws_region');
+    const POOL_REGION = await awsConfigService.getParameter('/n11051337/aws_region');
     if (!POOL_REGION) {
         console.error('Failed to retrieve POOL_REGION from Parameter Store. Exiting application.');
         process.exit(1);
     }
     const cognitoClient = new CognitoIdentityProviderClient({ region: POOL_REGION });
 
-    const clientSecret = await secretManagerService.getCognitoClientSecret();
+    const clientSecret = await awsConfigService.getCognitoClientSecret();
     const hasher = crypto.createHmac('sha256', clientSecret);
     hasher.update(`${username}${clientId}`);
     return hasher.digest('base64');
 }
 
-const idVerifier = CognitoJwtVerifier.create({
-    userPoolId: USER_POOL_ID,
-    tokenUse: "id",
-    clientId: CLIENT_ID,
-});
+let idVerifier;
+
+async function initialiseIdVerifier() {
+    await initialiseCognitoConfig();
+    idVerifier = CognitoJwtVerifier.create({
+        userPoolId: USER_POOL_ID,
+        tokenUse: "id",
+        clientId: CLIENT_ID,
+    });
+}
+
+initialiseIdVerifier();
 
 async function verifyToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -52,7 +70,7 @@ async function verifyToken(req, res, next) {
 }
 
 router.post('/signup', async (req, res) => {
-    const POOL_REGION = await secretManagerService.getParameter('/n11051337/aws_region');
+    const POOL_REGION = await awsConfigService.getParameter('/n11051337/aws_region');
     if (!POOL_REGION) {
         console.error('Failed to retrieve POOL_REGION from Parameter Store. Exiting application.');
         process.exit(1);
@@ -83,7 +101,7 @@ router.post('/signup', async (req, res) => {
 });
 
 router.post('/confirm', async (req, res) => {
-    const POOL_REGION = await secretManagerService.getParameter('/n11051337/aws_region');
+    const POOL_REGION = await awsConfigService.getParameter('/n11051337/aws_region');
     if (!POOL_REGION) {
         console.error('Failed to retrieve POOL_REGION from Parameter Store. Exiting application.');
         process.exit(1);
@@ -113,7 +131,7 @@ router.post('/confirm', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-    const POOL_REGION = await secretManagerService.getParameter('/n11051337/aws_region');
+    const POOL_REGION = await awsConfigService.getParameter('/n11051337/aws_region');
     if (!POOL_REGION) {
         console.error('Failed to retrieve POOL_REGION from Parameter Store. Exiting application.');
         process.exit(1);
