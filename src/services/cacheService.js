@@ -34,6 +34,7 @@ const cacheService = {
     get: async (key) => {
         if (!memcachedClient) return null;
         try {
+            console.log(`DEBUG: Attempting to get key: ${key} from Memcached.`);
             const value = await memcachedClient.aGet(key);
             if (value) {
                 console.log(`Cache hit for key: ${key}`);
@@ -50,6 +51,7 @@ const cacheService = {
     set: async (key, value, ttl = 60) => {
         if (!memcachedClient) return;
         try {
+            console.log(`DEBUG: Attempting to set key: ${key} with TTL: ${ttl} to Memcached.`);
             await memcachedClient.aSet(key, value, ttl);
             console.log(`Cache set for key: ${key} with TTL: ${ttl}`);
         } catch (error) {
