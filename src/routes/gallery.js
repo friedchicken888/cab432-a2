@@ -7,7 +7,8 @@ const cacheService = require('../services/cacheService');
 const s3Service = require('../services/s3Service');
 
 const generateCacheKey = (userId, filters, sortBy, sortOrder, limit, offset) => {
-    return `gallery:${userId}:${JSON.stringify(filters)}:${sortBy}:${sortOrder}:${limit}:${offset}`;
+    const filterString = JSON.stringify(filters || {});
+    return `gallery:${userId}:${filterString}:${sortBy || ''}:${sortOrder || ''}:${limit || ''}:${offset || ''}`;
 };
 
 router.get('/gallery', verifyToken, async (req, res) => {
