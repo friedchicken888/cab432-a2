@@ -79,6 +79,14 @@ router.delete('/gallery/:id', verifyToken, async (req, res) => {
 
         await Gallery.deleteGalleryEntry(galleryId, userId, isAdmin);
 
+        const userGalleryCacheKey = generateCacheKey(userId, {}, null, null, null, null);
+        await cacheService.del(userGalleryCacheKey);
+
+        if (isAdmin) {
+            const adminGalleryCacheKey = `admin:gallery:${JSON.stringify({})}:null:null:null:null`;
+            await cacheService.del(adminGalleryCacheKey);
+        }
+
         const countRow = await Gallery.countGalleryByFractalHash(fractalHash);
 
         if (parseInt(countRow.count) === 0) {
